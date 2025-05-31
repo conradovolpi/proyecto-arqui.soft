@@ -1,8 +1,16 @@
 package service
 
 import (
-    "gorm.io/gorm"
+     "gorm.io/gorm"
     "proyecto2025/backend/models"
+	"backend/dto"
+	"errors"
+	"os"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
+	
 )
 
 // crear usuario
@@ -32,5 +40,45 @@ func DeleteUsuario(db *gorm.DB, id uint) error {
 }
 
 //login
+
+var jwtKey = []byte("clave_secreta_segura") // podés leerla de una variable de entorno
+
+type Claims struct {
+	UsuarioID uint   `json:"usuario_id"`
+	Email     string `json:"email"`
+	Rol       string `json:"rol"`
+	jwt.RegisteredClaims
+}
+
+func LoginUsuario(db *gorm.DB, loginDto dto.LoginDto) (string, error) {
+	var user models.Usuario
+	if err := db.Where("email = ?", loginDto.Email).First(&user).Error; err != nil {
+		return "", errors.New("usuario no encontrado")
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginDto.Password))
+	if err != nil {
+		return "", errors.New("contraseña incorrecta")
+	}
+
+	claims := &Claims{
+		UsuarioID: user.UsuarioID,
+		Email:     user.Email,
+		Rol:       user.Rol,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString(jwtKey)
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+
 
 
