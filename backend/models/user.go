@@ -8,5 +8,3 @@ type Usuario struct {
 	Rol           string        `gorm:"size:20;not null"`  // "socio" o "admin"
 	Inscripciones []Inscripcion `gorm:"foreignKey:UsuarioID"`
 }
- 
-gola
