@@ -1,4 +1,4 @@
--- Tabla de usuarios
+-- Crear tabla Usuario
 CREATE TABLE Usuario (
     UsuarioID INT AUTO_INCREMENT PRIMARY KEY,
     Nombre VARCHAR(100) NOT NULL,
@@ -7,19 +7,19 @@ CREATE TABLE Usuario (
     Rol VARCHAR(20) NOT NULL
 );
 
--- Tabla de actividades
+-- Crear tabla Actividad
 CREATE TABLE Actividad (
     ActividadID INT AUTO_INCREMENT PRIMARY KEY,
-    HorarioInicio VARCHAR(20) NOT NULL,
-    HorarioFin VARCHAR(20) NOT NULL,
+    HorarioInicio TIME NOT NULL,
+    HorarioFin TIME NOT NULL,
     Titulo VARCHAR(100) NOT NULL,
     Descripcion TEXT,
     Instructor VARCHAR(100) NOT NULL,
-    Duracion INT NOT NULL, -- minutos
-    Cupo INT NOT NULL
+    Cupo INT NOT NULL,
+    Categoria VARCHAR(50) NOT NULL
 );
 
--- Tabla de inscripciones (relación muchos a muchos)
+-- Crear tabla Inscripcion (relación entre Usuario y Actividad)
 CREATE TABLE Inscripcion (
     UsuarioID INT NOT NULL,
     ActividadID INT NOT NULL,
