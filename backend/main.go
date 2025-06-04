@@ -1,4 +1,14 @@
-// para el login 
-r.POST("/login", func(c *gin.Context) {
-	controllers.LoginHandler(c, db)
-})
+package main
+
+import (
+	"backend/clients"
+	"backend/models"
+)
+
+func main() {
+	clients.ConnectDB()
+	clients.MigrateEntities()
+	users.UserClient.CreateUser(models.Usuario{
+		Nombre: "Juan Perez",
+	}
+}

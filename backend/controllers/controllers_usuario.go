@@ -1,25 +1,72 @@
 package controllers
 
 import (
-	"backend/dto"
-	"backend/service"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"encoding/json"
 	"net/http"
+	"strconv"
+
+	"backend/models"
+	"backend/service"
+
+	"github.com/gorilla/mux"
 )
 
-func LoginHandler(c *gin.Context, db *gorm.DB) {
-	var loginDto dto.LoginDto
-	if err := c.BindJSON(&loginDto); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos de login inválidos"})
+type UsuarioController struct {
+	Service *service.UsuarioService
+}
+
+func NewUsuarioController(service *service.UsuarioService) *UsuarioController {
+	return &UsuarioController{Service: service}
+}
+
+// POST /usuarios
+func (c *UsuarioController) CrearUsuario(w http.ResponseWriter, r *http.Request) {
+	var usuario models.Usuario
+	if err := json.NewDecoder(r.Body).Decode(&usuario); err != nil {
+		http.Error(w, "Datos inválidos", http.StatusBadRequest)
 		return
 	}
 
-	token, err := service.LoginUsuario(db, loginDto)
+	if err := c.Service.CrearUsuario(&usuario); err != nil {
+		http.Error(w, "Error al crear el usuario", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(usuario)
+}
+
+// GET /usuarios/{id}
+func (c *UsuarioController) ObtenerUsuario(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		http.Error(w, "ID inválido", http.StatusBadRequest)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	usuario, err := c.Service.ObtenerUsuarioPorID(id)
+	if err != nil {
+		http.Error(w, "Usuario no encontrado", http.StatusNotFound)
+		return
+	}
+
+	json.NewEncoder(w).Encode(usuario)
+}
+
+// DELETE /usuarios/{id}
+func (c *UsuarioController) EliminarUsuario(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
+	if err := c.Service.EliminarUsuario(id); err != nil {
+		http.Error(w, "Error al eliminar el usuario", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
