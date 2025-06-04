@@ -2,7 +2,10 @@ module backend
 
 go 1.24.2
 
-require gorm.io/gorm v1.30.0
+require (
+	github.com/gorilla/mux v1.8.1
+	gorm.io/gorm v1.30.0
+)
 
 require github.com/go-sql-driver/mysql v1.7.0 // indirect
 

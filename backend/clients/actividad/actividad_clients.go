@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/volpi-figueroa-diazotanez-castellani/proyecto2025/backend/internal/domain"
 )
 
 type actividadClient struct {
