@@ -1,57 +1,30 @@
 // src/services/mockData.js
+
 export const users = [
-    { id: 1, username: 'admin', password: 'admin', role: 'admin' },
-    { id: 2, username: 'user', password: 'user', role: 'user' },
-  ];
-  
-  export let activities = [
-    {
-      id: 1,
-      title: 'Yoga',
-      description: 'Clase de yoga relajante',
-      instructor: 'María',
-      duration: '1h',
-      schedule: '08:00',
-      category: 'Bienestar',
-      capacity: 5,
-      enrolledUsers: [2],
-      comments: [
-        { userId: 2, text: 'Muy buena clase', rating: 5 },
-      ],
-    },
-    {
-      id: 2,
-      title: 'Crossfit',
-      description: 'Entrenamiento de alta intensidad',
-      instructor: 'Juan',
-      duration: '45m',
-      schedule: '10:00',
-      category: 'Fuerza',
-      capacity: 10,
-      enrolledUsers: [],
-      comments: [],
-    },
-  ];
-  
-  export let sessions = {
-    user: null,
-  };
-  
-  // login simulado
-  export const login = (username, password) => {
-    const found = users.find(u => u.username === username && u.password === password);
-    if (found) {
-      sessions.user = found;
-      return found;
-    }
-    return null;
-  };
-  
-  export const logout = () => {
-    sessions.user = null;
-  };
-  
-  export const getCurrentUser = () => sessions.user;
+  { id: 1, username: 'admin', password: 'admin', role: 'admin' },
+  { id: 2, username: 'user', password: 'user', role: 'user' },
+];
+
+export let activities = [ /* tus actividades mock aquí */ ];
+
+export const login = (username, password) => {
+  const found = users.find(u => u.username === username && u.password === password);
+  if (found) {
+    localStorage.setItem('user', JSON.stringify(found)); // 🧠 persistencia
+    return found;
+  }
+  return null;
+};
+
+export const logout = () => {
+  localStorage.removeItem('user');
+};
+
+export const getCurrentUser = () => {
+  const raw = localStorage.getItem('user');
+  return raw ? JSON.parse(raw) : null;
+};
+
   
   export const getActivities = () => activities;
   
