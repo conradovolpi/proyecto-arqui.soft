@@ -1,13 +1,35 @@
-import { Routes, Route } from 'react-router-dom';
-import Home from './Home.jsx';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Home from './pages/Home';
+import ActivityDetail from './pages/ActivityDetail';
+import MyActivities from './pages/MyActivities';
+import Admin from './pages/Admin';
+import { getCurrentUser } from './services/mockData';
 
 export default function App() {
+  const user = getCurrentUser();
+
   return (
-    <>
-      <h1>🏋️ Actividades Deportivas</h1>
+    <BrowserRouter>
+      <Navbar />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={user ? <Home /> : <Navigate to="/login" />} />
+        <Route
+          path="/actividad/:id"
+          element={user ? <ActivityDetail /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/mis-actividades"
+          element={user ? <MyActivities /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/admin"
+          element={user?.role === 'admin' ? <Admin /> : <Navigate to="/" />}
+        />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </>
+    </BrowserRouter>
   );
 }
