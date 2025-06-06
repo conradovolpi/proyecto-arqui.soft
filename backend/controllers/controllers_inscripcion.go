@@ -1,74 +1,31 @@
+// controllers/controllers_inscripcion.go
 package controllers
 
 import (
-	"encoding/json"
 	"net/http"
-	"strconv"
 
-	"backend/dao"
-	"backend/service"
+	"tu_modulo/dto"
+	"tu_modulo/service"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type InscripcionController struct {
 	Service *service.InscripcionService
 }
 
-func NewInscripcionController(service *service.InscripcionService) *InscripcionController {
-	return &InscripcionController{Service: service}
-}
+func (ctrl *InscripcionController) PostInscripcion(c *gin.Context) {
+	var input dto.CrearInscripcionDTO
 
-func (c *InscripcionController) CrearInscripcion(w http.ResponseWriter, r *http.Request) {
-	var inscripcion dao.Inscripcion
-	if err := json.NewDecoder(r.Body).Decode(&inscripcion); err != nil {
-		http.Error(w, "Datos inválidos", http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Datos inválidos"})
 		return
 	}
 
-	if err := c.Service.CrearInscripcion(&inscripcion); err != nil {
-		http.Error(w, "Error al crear inscripción: "+err.Error(), http.StatusInternalServerError)
+	if err := ctrl.Service.CrearInscripcion(input.UsuarioID, input.ActividadID); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(inscripcion)
-}
-
-func (c *InscripcionController) EliminarInscripcion(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	usuarioID, err := strconv.Atoi(vars["usuarioID"])
-	if err != nil {
-		http.Error(w, "UsuarioID inválido", http.StatusBadRequest)
-		return
-	}
-	actividadID, err := strconv.Atoi(vars["actividadID"])
-	if err != nil {
-		http.Error(w, "ActividadID inválido", http.StatusBadRequest)
-		return
-	}
-
-	if err := c.Service.EliminarInscripcion(uint(usuarioID), uint(actividadID)); err != nil {
-		http.Error(w, "Error al eliminar inscripción: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (c *InscripcionController) ObtenerInscripcionesPorUsuario(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	usuarioID, err := strconv.Atoi(vars["usuarioID"])
-	if err != nil {
-		http.Error(w, "UsuarioID inválido", http.StatusBadRequest)
-		return
-	}
-
-	inscripciones, err := c.Service.ObtenerInscripcionesPorUsuario(uint(usuarioID))
-	if err != nil {
-		http.Error(w, "Error al obtener inscripciones: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	json.NewEncoder(w).Encode(inscripciones)
+	c.JSON(http.StatusCreated, gin.H{"mensaje": "Inscripción realizada con éxito"})
 }
