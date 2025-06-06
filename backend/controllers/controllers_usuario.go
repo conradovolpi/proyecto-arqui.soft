@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"backend/dao"
+	"backend/dto"
 	"backend/service"
 
 	"github.com/gorilla/mux"
@@ -21,10 +22,17 @@ func NewUsuarioController(service *service.UsuarioService) *UsuarioController {
 
 // POST /usuarios
 func (c *UsuarioController) CrearUsuario(w http.ResponseWriter, r *http.Request) {
-	var usuario dao.Usuario
-	if err := json.NewDecoder(r.Body).Decode(&usuario); err != nil {
+	var usuarioReq dto.UsuarioRequest
+	if err := json.NewDecoder(r.Body).Decode(&usuarioReq); err != nil {
 		http.Error(w, "Datos inválidos", http.StatusBadRequest)
 		return
+	}
+
+	usuario := dao.Usuario{
+		Nombre:   usuarioReq.Nombre,
+		Email:    usuarioReq.Email,
+		Password: usuarioReq.Password,
+		Rol:      usuarioReq.Rol,
 	}
 
 	if err := c.Service.CrearUsuario(&usuario); err != nil {
@@ -32,8 +40,15 @@ func (c *UsuarioController) CrearUsuario(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	usuarioRes := dto.UsuarioResponse{
+		ID:     usuario.UsuarioID,
+		Nombre: usuario.Nombre,
+		Email:  usuario.Email,
+		Rol:    usuario.Rol,
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(usuario)
+	json.NewEncoder(w).Encode(usuarioRes)
 }
 
 // GET /usuarios/{id}
@@ -51,7 +66,14 @@ func (c *UsuarioController) ObtenerUsuario(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	json.NewEncoder(w).Encode(usuario)
+	usuarioRes := dto.UsuarioResponse{
+		ID:     usuario.UsuarioID,
+		Nombre: usuario.Nombre,
+		Email:  usuario.Email,
+		Rol:    usuario.Rol,
+	}
+
+	json.NewEncoder(w).Encode(usuarioRes)
 }
 
 // DELETE /usuarios/{id}

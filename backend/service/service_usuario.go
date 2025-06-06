@@ -1,6 +1,8 @@
 package service
 
 import (
+	"backend/dao"
+
 	"gorm.io/gorm"
 )
 
@@ -12,19 +14,22 @@ func NewUsuarioService(db *gorm.DB) *UsuarioService {
 	return &UsuarioService{db: db}
 }
 
-func (s *UsuarioService) CrearUsuario(usuario *models.Usuario) error {
-	return s.db.Create(usuario).Error
+// CrearUsuario delega al DAO la creación del usuario
+func (s *UsuarioService) CrearUsuario(usuario *dao.Usuario) error {
+	return dao.CrearUsuario(s.db, usuario)
 }
 
-func (s *UsuarioService) ObtenerUsuarioPorID(id int) (*models.Usuario, error) {
-	var usuario models.Usuario
-	err := s.db.First(&usuario, id).Error
-	if err != nil {
-		return nil, err
-	}
-	return &usuario, nil
+// ObtenerUsuarioPorID recupera un usuario por su ID
+func (s *UsuarioService) ObtenerUsuarioPorID(id int) (*dao.Usuario, error) {
+	return dao.ObtenerUsuarioPorID(s.db, id)
 }
 
+// EliminarUsuario elimina un usuario dado su ID
 func (s *UsuarioService) EliminarUsuario(id int) error {
-	return s.db.Delete(&models.Usuario{}, id).Error
+	return dao.EliminarUsuario(s.db, id)
+}
+
+// ObtenerUsuarioPorEmail (opcional) si querés validación o login
+func (s *UsuarioService) ObtenerUsuarioPorEmail(email string) (*dao.Usuario, error) {
+	return dao.ObtenerUsuarioPorEmail(s.db, email)
 }

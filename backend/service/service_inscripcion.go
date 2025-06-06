@@ -1,66 +1,42 @@
-// service/service_inscripcion.go
 package service
 
 import (
-	"errors"
-	"time"
-
-	"tu_modulo/dao"
+	"backend/dao"
 
 	"gorm.io/gorm"
 )
 
 type InscripcionService struct {
-	DB *gorm.DB
+	db *gorm.DB
 }
 
-// CrearInscripcion crea una nueva inscripción, validando duplicados y cupo.
-func (s *InscripcionService) CrearInscripcion(usuarioID, actividadID uint) error {
-	// Verificar si ya está inscripto
-	var existente dao.Inscripcion
-	err := s.DB.Where("usuario_id = ? AND actividad_id = ?", usuarioID, actividadID).First(&existente).Error
-	if err == nil {
-		return errors.New("el usuario ya está inscripto en esta actividad")
-	}
-
-	// Verificar existencia de actividad
-	var actividad dao.Actividad
-	if err := s.DB.First(&actividad, actividadID).Error; err != nil {
-		return errors.New("actividad no encontrada")
-	}
-
-	// Verificar cupo
-	var inscriptos int64
-	s.DB.Model(&dao.Inscripcion{}).Where("actividad_id = ?", actividadID).Count(&inscriptos)
-	if uint(inscriptos) >= actividad.Cupo {
-		return errors.New("no hay cupos disponibles para esta actividad")
-	}
-
-	// Crear inscripción
-	inscripcion := dao.Inscripcion{
-		UsuarioID:        usuarioID,
-		ActividadID:      actividadID,
-		FechaInscripcion: time.Now(),
-	}
-
-	return s.DB.Create(&inscripcion).Error
+func NewInscripcionService(db *gorm.DB) *InscripcionService {
+	return &InscripcionService{db: db}
 }
 
-// ObtenerTodas devuelve todas las inscripciones con relaciones
-func (s *InscripcionService) ObtenerTodas() ([]dao.Inscripcion, error) {
-	var inscripciones []dao.Inscripcion
-	err := s.DB.Preload("Usuario").Preload("Actividad").Find(&inscripciones).Error
-	return inscripciones, err
+// CrearInscripcion intenta guardar una inscripción si no existe previamente
+func (s *InscripcionService) CrearInscripcion(inscripcion *dao.Inscripcion) error {
+	existe, err := dao.ExisteInscripcion(s.db, inscripcion.UsuarioID, inscripcion.ActividadID)
+	if err != nil {
+		return err
+	}
+	if existe {
+		return nil // Ya existe, no se duplica
+	}
+	return dao.CrearInscripcion(s.db, inscripcion)
 }
 
-// ObtenerPorUsuario devuelve todas las inscripciones de un usuario
-func (s *InscripcionService) ObtenerPorUsuario(usuarioID uint) ([]dao.Inscripcion, error) {
-	var inscripciones []dao.Inscripcion
-	err := s.DB.Preload("Actividad").Where("usuario_id = ?", usuarioID).Find(&inscripciones).Error
-	return inscripciones, err
+// ObtenerInscripcionesPorUsuario retorna todas las inscripciones de un usuario
+func (s *InscripcionService) ObtenerInscripcionesPorUsuario(usuarioID uint) ([]dao.Inscripcion, error) {
+	return dao.ObtenerInscripcionesPorUsuario(s.db, usuarioID)
 }
 
-// EliminarInscripcion elimina una inscripción existente
+// ObtenerInscripcionesPorActividad retorna todas las inscripciones de una actividad
+func (s *InscripcionService) ObtenerInscripcionesPorActividad(actividadID uint) ([]dao.Inscripcion, error) {
+	return dao.ObtenerInscripcionesPorActividad(s.db, actividadID)
+}
+
+// EliminarInscripcion elimina una inscripción
 func (s *InscripcionService) EliminarInscripcion(usuarioID, actividadID uint) error {
-	return s.DB.Delete(&dao.Inscripcion{}, "usuario_id = ? AND actividad_id = ?", usuarioID, actividadID).Error
+	return dao.EliminarInscripcion(s.db, usuarioID, actividadID)
 }
