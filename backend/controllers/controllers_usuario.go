@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"backend/models"
+	"backend/dao"
 	"backend/service"
 
 	"github.com/gorilla/mux"
@@ -21,7 +21,7 @@ func NewUsuarioController(service *service.UsuarioService) *UsuarioController {
 
 // POST /usuarios
 func (c *UsuarioController) CrearUsuario(w http.ResponseWriter, r *http.Request) {
-	var usuario models.Usuario
+	var usuario dao.Usuario
 	if err := json.NewDecoder(r.Body).Decode(&usuario); err != nil {
 		http.Error(w, "Datos inválidos", http.StatusBadRequest)
 		return
