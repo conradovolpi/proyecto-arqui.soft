@@ -1,4 +1,4 @@
-package models
+package dao
 
 type Usuario struct {
 	UsuarioID     uint          `gorm:"primaryKey;autoIncrement"`
