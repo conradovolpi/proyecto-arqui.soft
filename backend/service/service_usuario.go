@@ -124,12 +124,35 @@ func EliminarUsuario(db *gorm.DB, id uint) error {
 	return nil
 }
 
-// creo que no es necesaria esta
-// Obtener todos los usuarios
-func ObtenerUsuarios(db *gorm.DB) ([]model.Usuario, error) {
+func ObtenerUsuariosSanitizados(db *gorm.DB) ([]dto.UsuarioResponse, error) {
 	var usuarios []model.Usuario
 	if err := db.Find(&usuarios).Error; err != nil {
 		return nil, err
 	}
-	return usuarios, nil
+
+	var usuariosResp []dto.UsuarioResponse
+	for _, u := range usuarios {
+		usuariosResp = append(usuariosResp, dto.UsuarioResponse{
+			ID:     u.UsuarioID,
+			Nombre: u.Nombre,
+			Email:  u.Email,
+			Rol:    u.Rol,
+		})
+	}
+	return usuariosResp, nil
+}
+func ObtenerUsuarioPorID(db *gorm.DB, id uint) (*dto.UsuarioResponse, error) {
+	var user model.Usuario
+	if err := db.First(&user, id).Error; err != nil {
+		return nil, errors.New("usuario no encontrado")
+	}
+
+	usuarioResp := &dto.UsuarioResponse{
+		ID:     user.UsuarioID,
+		Nombre: user.Nombre,
+		Email:  user.Email,
+		Rol:    user.Rol,
+	}
+
+	return usuarioResp, nil
 }
