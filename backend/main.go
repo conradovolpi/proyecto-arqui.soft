@@ -8,7 +8,7 @@ import (
 func main() {
 	clients.ConnectDB()
 	clients.MigrateEntities()
-	users.UserClient.CreateUser(models.Usuario{
+	users.UserClient.CreateUser(models.Usuario){
 		Nombre: "Juan Perez",
 	}
 }
