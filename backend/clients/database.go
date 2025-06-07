@@ -15,7 +15,7 @@ var DB *gorm.DB
 
 func ConnectDb() error {
 	// Leer la configuración desde el entorno
-	dsn := os.Getenv("DB")
+	dsn := os.Getenv("DB_HOST")
 	if dsn == "" {
 		return fmt.Errorf("database connection string is empty")
 	}
@@ -32,7 +32,7 @@ func ConnectDb() error {
 
 	// Migraciones
 	/*
-		err = DB.AutoMigrate(&dao.Course{}, &dao.Category{}, &dao.User{}, &dao.CourseInscription{}, &dao.Comment{})
+		err = DB.AutoMigrate(&dao.Actividad{}, &dao.Inscripcion{}, &dao.Usuario{})
 		if err != nil {
 			return fmt.Errorf("failed to migrate database: %w", err)
 		}
@@ -46,7 +46,15 @@ func CreateUser(user *dao.Usuario) error {
 	return result.Error
 }
 
-// update user
+func ObtainUserByEmail(email string) (*dao.Usuario, error) {
+	var usuario dao.Usuario
+	result := DB.Where("email = ?", email).First(&usuario)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &usuario, nil
+}
+
 // ACTIVIDADES
 func CreateActivity(actividad dao.Actividad) error {
 	result := DB.Create(&actividad)

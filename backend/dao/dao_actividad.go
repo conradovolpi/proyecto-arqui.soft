@@ -1,9 +1,13 @@
 package dao
 
-import "time"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type Actividad struct {
-	ActividadID   uint      `gorm:"primaryKey;autoIncrement"`
+	gorm.Model
 	HorarioInicio time.Time `gorm:"not null"`
 	HorarioFin    time.Time `gorm:"not null"`
 	Titulo        string    `gorm:"size:100;not null"`
@@ -13,4 +17,8 @@ type Actividad struct {
 	Cupo          int       `gorm:"not null"`
 	Categoria     string    `gorm:"size:50;not null"`
 	FotoURL       string    `gorm:"size:255"` // Opcional
+}
+
+func (Actividad) TableName() string {
+	return "actividades"
 }

@@ -1,14 +1,16 @@
 package main
 
 import (
+	"backend/app"
 	"backend/clients"
-	"backend/models"
+	"backend/initializers"
 )
 
 func main() {
-	clients.ConnectDB()
-	clients.MigrateEntities()
-	users.UserClient.CreateUser(models.Usuario{
-		Nombre: "Juan Perez",
-	}
+	// Initialize the application
+	initializers.LoadEnvVariables()
+	clients.ConnectDb()
+
+	// Start the router
+	app.StartRoute()
 }
