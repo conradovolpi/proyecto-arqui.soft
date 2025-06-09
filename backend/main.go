@@ -4,7 +4,6 @@ import (
 	"backend/clients"
 	"backend/clients/usuario"
 	"backend/controllers"
-	"backend/router"
 )
 
 func main() {
