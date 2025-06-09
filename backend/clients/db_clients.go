@@ -1,6 +1,7 @@
 package clients
 
 import (
+	"backend/models"
 	"fmt"
 	"log"
 	"os"
@@ -25,27 +26,25 @@ func ConnectDatabase() {
 	connection := fmt.Sprintf(dsn, dbUsername, dbPassword, dbHost, dbPort, dbSchema)
 
 	var err error
-	for i := 0; i < 10; i++ { // Intentar conectar hasta 10 veces
+	for i := 0; i < 10; i++ {
 		Db, err = gorm.Open(mysql.Open(connection), &gorm.Config{})
 		if err == nil {
-			fmt.Println("Connection Established")
+			fmt.Println("✅ Conexión establecida con la base de datos")
 			break
 		}
-		fmt.Println("Error connecting to DB, retrying in 5 seconds...", err)
+		fmt.Println("❗ Error conectando a la DB. Reintentando en 5s...", err)
 		time.Sleep(5 * time.Second)
 	}
 
 	if err != nil {
-		log.Fatalf("Could not connect to the database: %v", err)
+		log.Fatalf("🔥 No se pudo conectar a la base de datos: %v", err)
 	}
 }
 
-// migra las entidades mode.users, model.courses y model.usersxcourses
 func MigrateEntities() {
-	err := Db.AutoMigrate(&model.Users{}, &model.Courses{}, &model.Users_x_courses{})
+	err := Db.AutoMigrate(&models.Usuario{}, &models.Actividad{}, &models.Inscripcion{})
 	if err != nil {
-		fmt.Println("Error migrating to DB", err)
-		panic(err)
+		log.Fatalf("❌ Error migrando entidades: %v", err)
 	}
-	fmt.Println("Finishing Migration Database Tables")
+	fmt.Println("✅ Migración de entidades completada")
 }
