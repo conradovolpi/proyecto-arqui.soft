@@ -5,36 +5,42 @@ import (
 	"backend/models"
 )
 
-type InscripcionClient struct{}
-
-func NewInscripcionClient() *InscripcionClient {
-	return &InscripcionClient{}
+type InscripcionClientInterface interface {
+	Get(usuarioID, actividadID uint) (*models.Inscripcion, error)
+	GetByUsuario(usuarioID uint) ([]models.Inscripcion, error)
+	GetByActividad(actividadID uint) ([]models.Inscripcion, error)
+	Create(insc models.Inscripcion) error
+	Delete(usuarioID, actividadID uint) error
 }
 
-func (c *InscripcionClient) Create(insc *models.Inscripcion) error {
-	return clients.Db.Create(insc).Error
-}
+type inscripcionClient struct{}
 
-func (c *InscripcionClient) Get(usuarioID uint, actividadID uint) (*models.Inscripcion, error) {
+var InscripcionClient InscripcionClientInterface = &inscripcionClient{}
+
+func (i *inscripcionClient) Get(usuarioID, actividadID uint) (*models.Inscripcion, error) {
 	var insc models.Inscripcion
 	err := clients.Db.Where("usuario_id = ? AND actividad_id = ?", usuarioID, actividadID).
 		First(&insc).Error
 	return &insc, err
 }
 
-func (c *InscripcionClient) Delete(usuarioID, actividadID uint) error {
+func (i *inscripcionClient) GetByUsuario(usuarioID uint) ([]models.Inscripcion, error) {
+	var insc []models.Inscripcion
+	err := clients.Db.Where("usuario_id = ?", usuarioID).Find(&insc).Error
+	return insc, err
+}
+
+func (i *inscripcionClient) GetByActividad(actividadID uint) ([]models.Inscripcion, error) {
+	var insc []models.Inscripcion
+	err := clients.Db.Where("actividad_id = ?", actividadID).Find(&insc).Error
+	return insc, err
+}
+
+func (i *inscripcionClient) Create(insc models.Inscripcion) error {
+	return clients.Db.Create(&insc).Error
+}
+
+func (i *inscripcionClient) Delete(usuarioID, actividadID uint) error {
 	return clients.Db.Where("usuario_id = ? AND actividad_id = ?", usuarioID, actividadID).
 		Delete(&models.Inscripcion{}).Error
-}
-
-func (c *InscripcionClient) GetByUsuario(usuarioID uint) ([]models.Inscripcion, error) {
-	var inscripciones []models.Inscripcion
-	err := clients.Db.Where("usuario_id = ?", usuarioID).Find(&inscripciones).Error
-	return inscripciones, err
-}
-
-func (c *InscripcionClient) GetByActividad(actividadID uint) ([]models.Inscripcion, error) {
-	var inscripciones []models.Inscripcion
-	err := clients.Db.Where("actividad_id = ?", actividadID).Find(&inscripciones).Error
-	return inscripciones, err
 }

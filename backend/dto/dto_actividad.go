@@ -8,7 +8,7 @@ type ActividadCreateDTO struct {
 	Titulo        string    `json:"titulo" binding:"required"`
 	Descripcion   string    `json:"descripcion" binding:"required"`
 	Instructor    string    `json:"instructor" binding:"required"`
-	Cupo          int       `json:"cupo" binding:"required,gte=1"`
+	Cupo          int       `json:"cupo" binding:"required"`
 	Categoria     string    `json:"categoria" binding:"required"`
 }
 
