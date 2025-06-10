@@ -4,7 +4,6 @@ import (
 	"backend/clients/actividad"
 	"backend/dto"
 	"backend/models"
-	"errors"
 )
 
 type ActividadServiceInterface interface {
@@ -74,3 +73,4 @@ func (s *actividadService) GetAll() ([]dto.ActividadResponseDTO, error) {
 		return nil, err
 	}
 	var res []dto.ActividadRes
+}

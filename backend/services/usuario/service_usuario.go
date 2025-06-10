@@ -1,98 +1,115 @@
-package usuario
+package services
 
 import (
+	"os"
+
 	"backend/clients/usuario"
 	"backend/dto"
 	"backend/models"
-	"crypto/md5"
-	"encoding/hex"
+	"backend/utils"
 
-	"github.com/golang-jwt/jwt/v5"
-	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
-type usuarioService struct{}
-
-var (
-	UsuarioService UsuarioServiceInterface
-)
-
-type UsuarioServiceInterface interface {
-	GetUsuarioByID(id uint) (dto.UsuarioResponseDTO, errores.ApiError)
-	Login(loginDto dto.LoginDTO) (dto.TokenDto, errores.ApiError)
-	CreateUsuario(dto.UsuarioCreateDTO) (dto.UsuarioResponseDTO, errores.ApiError)
+type UsuarioService interface {
+	Create(dto.UsuarioCreateDTO) (*dto.UsuarioResponseDTO, utils.ApiError)
+	Login(dto.LoginDTO) (*dto.LoginResponseDTO, utils.ApiError)
+	GetByID(uint) (*dto.UsuarioResponseDTO, utils.ApiError)
+	GetAll() ([]dto.UsuarioResponseDTO, utils.ApiError)
 }
 
-func init() {
-	UsuarioService = &usuarioService{}
+type usuarioService struct {
+	client    usuario.UsuarioClientInterface
+	jwtSecret string
 }
 
-var jwtKey = []byte("super_secret_key")
-
-func (s *usuarioService) GetUsuarioByID(id uint) (dto.UsuarioResponseDTO, errores.ApiError) {
-	user, err := usuario.UsuarioClient.GetByID(id)
-	var userDto dto.UsuarioResponseDTO
-
-	if err != nil || user == nil || user.UsuarioID == 0 {
-		return userDto, errores.NewBadRequestApiError("usuario no encontrado")
+func NewUsuarioService() UsuarioService {
+	secret := os.Getenv("JWT_SECRET_KEY")
+	if secret == "" {
+		panic("JWT_SECRET_KEY no definida en entorno")
 	}
-
-	userDto.UsuarioID = user.UsuarioID
-	userDto.Nombre = user.Nombre
-	userDto.Email = user.Email
-	userDto.Rol = user.Rol
-	return userDto, nil
+	return &usuarioService{
+		client:    usuario.UsuarioClient,
+		jwtSecret: secret,
+	}
 }
 
-func (s *usuarioService) Login(loginDto dto.LoginDTO) (dto.TokenDto, errores.ApiError) {
-	log.Debug(loginDto)
-	var tokenDto dto.TokenDto
-
-	user, err := usuario.UsuarioClient.GetByEmail(loginDto.Email)
-	if err != nil || user == nil {
-		return tokenDto, errores.NewBadRequestApiError("Usuario no encontrado")
-	}
-
-	pswMd5 := md5.Sum([]byte(loginDto.Password))
-	pswMd5string := hex.EncodeToString(pswMd5[:])
-
-	if pswMd5string != user.Password {
-		return tokenDto, errores.NewBadRequestApiError("Contraseña incorrecta")
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.UsuarioID,
-	})
-
-	tokenString, _ := token.SignedString(jwtKey)
-
-	tokenDto.UsuarioID = user.UsuarioID
-	tokenDto.Token = tokenString
-	tokenDto.Rol = user.Rol
-
-	return tokenDto, nil
-}
-
-func (s *usuarioService) CreateUsuario(registro dto.UsuarioCreateDTO) (dto.UsuarioResponseDTO, errores.ApiError) {
-	var nuevo models.Usuario
-
-	nuevo.Nombre = registro.Nombre
-	nuevo.Email = registro.Email
-
-	pswMd5 := md5.Sum([]byte(registro.Password))
-	nuevo.Password = hex.EncodeToString(pswMd5[:])
-	nuevo.Rol = registro.Rol
-
-	nuevo, err := usuario.UsuarioClient.CreateUser(nuevo)
+func (s *usuarioService) Create(u dto.UsuarioCreateDTO) (*dto.UsuarioResponseDTO, utils.ApiError) {
+	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return dto.UsuarioResponseDTO{}, errores.NewInternalServerApiError("Error al crear el usuario", err)
+		return nil, utils.NewInternalServerApiError("Error al hashear la contraseña", err)
 	}
 
-	var registroResponse dto.UsuarioResponseDTO
-	registroResponse.UsuarioID = nuevo.UsuarioID
-	registroResponse.Nombre = nuevo.Nombre
-	registroResponse.Email = nuevo.Email
-	registroResponse.Rol = nuevo.Rol
+	usuario := &models.Usuario{
+		Nombre:   u.Nombre,
+		Email:    u.Email,
+		Password: string(hashed),
+		Rol:      u.Rol,
+	}
 
-	return registroResponse, nil
+	if err := s.client.CreateUser(usuario); err != nil {
+		return nil, utils.NewInternalServerApiError("Error creando usuario", err)
+	}
+
+	return &dto.UsuarioResponseDTO{
+		UsuarioID: usuario.UsuarioID,
+		Nombre:    usuario.Nombre,
+		Email:     usuario.Email,
+		Rol:       usuario.Rol,
+	}, nil
+}
+
+func (s *usuarioService) Login(loginDTO dto.LoginDTO) (*dto.LoginResponseDTO, utils.ApiError) {
+	usuario, err := s.client.GetByEmail(loginDTO.Email)
+	if err != nil {
+		return nil, utils.NewUnauthorizedApiError("Email o contraseña incorrectos")
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(usuario.Password), []byte(loginDTO.Password)) != nil {
+		return nil, utils.NewUnauthorizedApiError("Email o contraseña incorrectos")
+	}
+
+	token := utils.GenerateJWT(usuario.UsuarioID, s.jwtSecret)
+
+	return &dto.LoginResponseDTO{
+		Token: token,
+		Usuario: dto.UsuarioResponseDTO{
+			UsuarioID: usuario.UsuarioID,
+			Nombre:    usuario.Nombre,
+			Email:     usuario.Email,
+			Rol:       usuario.Rol,
+		},
+	}, nil
+}
+
+func (s *usuarioService) GetByID(id uint) (*dto.UsuarioResponseDTO, utils.ApiError) {
+	usuario, err := s.client.GetByID(id)
+	if err != nil {
+		return nil, utils.NewNotFoundApiError("Usuario no encontrado")
+	}
+
+	return &dto.UsuarioResponseDTO{
+		UsuarioID: usuario.UsuarioID,
+		Nombre:    usuario.Nombre,
+		Email:     usuario.Email,
+		Rol:       usuario.Rol,
+	}, nil
+}
+
+func (s *usuarioService) GetAll() ([]dto.UsuarioResponseDTO, utils.ApiError) {
+	usuarios, err := s.client.GetAll()
+	if err != nil {
+		return nil, utils.NewInternalServerApiError("Error recuperando usuarios", err)
+	}
+
+	var dtos []dto.UsuarioResponseDTO
+	for _, u := range usuarios {
+		dtos = append(dtos, dto.UsuarioResponseDTO{
+			UsuarioID: u.UsuarioID,
+			Nombre:    u.Nombre,
+			Email:     u.Email,
+			Rol:       u.Rol,
+		})
+	}
+	return dtos, nil
 }
