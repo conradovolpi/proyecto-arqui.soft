@@ -15,10 +15,10 @@ type ActividadServiceInterface interface {
 }
 
 type actividadService struct {
-	client *actividad.ActividadClient
+	client actividad.ActividadClientInterface
 }
 
-func NewActividadService(c *actividad.ActividadClient) ActividadServiceInterface {
+func NewActividadService(c actividad.ActividadClientInterface) ActividadServiceInterface {
 	return &actividadService{client: c}
 }
 
@@ -33,20 +33,20 @@ func (s *actividadService) CrearActividad(d dto.ActividadCreateDTO) (dto.Activid
 		Categoria:     d.Categoria,
 	}
 
-	err := s.client.Create(&a)
+	actividad, err := s.client.Create(a)
 	if err != nil {
 		return dto.ActividadResponseDTO{}, err
 	}
 
 	return dto.ActividadResponseDTO{
-		ActividadID:   a.ActividadID,
-		HorarioInicio: a.HorarioInicio,
-		HorarioFin:    a.HorarioFin,
-		Titulo:        a.Titulo,
-		Descripcion:   a.Descripcion,
-		Instructor:    a.Instructor,
-		Cupo:          a.Cupo,
-		Categoria:     a.Categoria,
+		ActividadID:   actividad.ActividadID,
+		HorarioInicio: actividad.HorarioInicio,
+		HorarioFin:    actividad.HorarioFin,
+		Titulo:        actividad.Titulo,
+		Descripcion:   actividad.Descripcion,
+		Instructor:    actividad.Instructor,
+		Cupo:          actividad.Cupo,
+		Categoria:     actividad.Categoria,
 	}, nil
 }
 
@@ -72,5 +72,37 @@ func (s *actividadService) GetAll() ([]dto.ActividadResponseDTO, error) {
 	if err != nil {
 		return nil, err
 	}
-	var res []dto.ActividadRes
+
+	var res []dto.ActividadResponseDTO
+	for _, a := range acts {
+		res = append(res, dto.ActividadResponseDTO{
+			ActividadID:   a.ActividadID,
+			HorarioInicio: a.HorarioInicio,
+			HorarioFin:    a.HorarioFin,
+			Titulo:        a.Titulo,
+			Descripcion:   a.Descripcion,
+			Instructor:    a.Instructor,
+			Cupo:          a.Cupo,
+			Categoria:     a.Categoria,
+		})
+	}
+	return res, nil
+}
+
+func (s *actividadService) Update(id uint, act dto.ActividadCreateDTO) error {
+	a := models.Actividad{
+		ActividadID:   id,
+		HorarioInicio: act.HorarioInicio,
+		HorarioFin:    act.HorarioFin,
+		Titulo:        act.Titulo,
+		Descripcion:   act.Descripcion,
+		Instructor:    act.Instructor,
+		Cupo:          act.Cupo,
+		Categoria:     act.Categoria,
+	}
+	return s.client.Update(a)
+}
+
+func (s *actividadService) Delete(id uint) error {
+	return s.client.Delete(id)
 }

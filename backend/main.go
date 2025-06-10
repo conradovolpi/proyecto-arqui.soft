@@ -2,27 +2,33 @@ package main
 
 import (
 	"backend/clients"
-	"backend/clients/usuario"
-	"backend/controllers"
+	"backend/clients/actividad"
+	"backend/clients/inscripcion"
+	actividadCtrl "backend/controllers/actividad"
+	inscripcionCtrl "backend/controllers/inscripcion"
+	usuarioCtrl "backend/controllers/usuario"
 	"backend/router"
+	actividadSvc "backend/services/actividad"
+	inscripcionSvc "backend/services/inscripcion"
+	usuarioSvc "backend/services/usuario"
 )
 
 func main() {
-	// 1. Conexión y migración de la base de datos
+	// Conexión a base de datos y migración de entidades
 	clients.ConnectDatabase()
 	clients.MigrateEntities()
 
-	// 2. Inicializar DAOs / Clients
-	usuarioClient := usuario.NewUsuarioClient(clients.Db)
+	// Inicialización de servicios
+	usuarioService := usuarioSvc.NewUsuarioService()
+	actividadService := actividadSvc.NewActividadService(actividad.ActividadClient)
+	inscripcionService := inscripcionSvc.NewInscripcionService(inscripcion.InscripcionClient)
 
-	// 3. Inicializar Controladores
-	usuarioController := controllers.NewUsuarioController(usuarioClient)
+	// Inicialización de controladores
+	usuarioController := usuarioCtrl.NewUsuarioController(usuarioService)
+	actividadController := actividadCtrl.NewActividadController(actividadService)
+	inscripcionController := inscripcionCtrl.NewInscripcionController(inscripcionService)
 
-	// 4. Inicializar Router
-	r := router.SetupRouter(usuarioController)
-
-	// 5. Lanzar servidor web
-	if err := r.Run(":8080"); err != nil {
-		panic("Error al iniciar el servidor: " + err.Error())
-	}
+	// Seteo de rutas y servidor
+	r := router.SetupRouter(usuarioController, inscripcionController, actividadController)
+	r.Run(":8080") // Servidor corriendo en localhost:8080
 }
