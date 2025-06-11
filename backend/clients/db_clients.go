@@ -29,22 +29,22 @@ func ConnectDatabase() {
 	for i := 0; i < 10; i++ {
 		Db, err = gorm.Open(mysql.Open(connection), &gorm.Config{})
 		if err == nil {
-			fmt.Println("✅ Conexión establecida con la base de datos")
+			fmt.Println("Conexión establecida con la base de datos")
 			break
 		}
-		fmt.Println("❗ Error conectando a la DB. Reintentando en 5s...", err)
+		fmt.Println("Error conectando a la DB. Reintentando en 5s...", err)
 		time.Sleep(5 * time.Second)
 	}
 
 	if err != nil {
-		log.Fatalf("🔥 No se pudo conectar a la base de datos: %v", err)
+		log.Fatalf(" No se pudo conectar a la base de datos: %v", err)
 	}
 }
 
 func MigrateEntities() {
 	err := Db.AutoMigrate(&models.Usuario{}, &models.Actividad{}, &models.Inscripcion{})
 	if err != nil {
-		log.Fatalf("❌ Error migrando entidades: %v", err)
+		log.Fatalf("Error migrando entidades: %v", err)
 	}
-	fmt.Println("✅ Migración de entidades completada")
+	fmt.Println("Migración de entidades completada")
 }
