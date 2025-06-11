@@ -11,9 +11,18 @@ import (
 	actividadSvc "backend/services/actividad"
 	inscripcionSvc "backend/services/inscripcion"
 	usuarioSvc "backend/services/usuario"
+	"log"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Cargar variables de entorno
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error cargando el archivo .env")
+	}
+
 	// Conexión a base de datos y migración de entidades
 	clients.ConnectDatabase()
 	clients.MigrateEntities()
