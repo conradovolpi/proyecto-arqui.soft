@@ -12,10 +12,11 @@ var (
 	ErrTokenExpirado = errors.New("token expirado")
 )
 
-func GenerateJWT(usuarioID uint, secret string) string {
+func GenerateJWT(usuarioID uint, rol, secret string) string {
 	claims := jwt.MapClaims{
 		"user_id": usuarioID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // Expira en 24h
+		"rol":     rol,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
@@ -28,9 +29,8 @@ func GenerateJWT(usuarioID uint, secret string) string {
 	return signedToken
 }
 
-func ValidateJWT(tokenString string, secret string) (uint, error) {
+func ValidateJWT(tokenString string, secret string) (uint, string, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-		// Validación del método de firma
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrTokenInvalido
 		}
@@ -39,16 +39,18 @@ func ValidateJWT(tokenString string, secret string) (uint, error) {
 
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return 0, ErrTokenExpirado
+			return 0, "", ErrTokenExpirado
 		}
-		return 0, ErrTokenInvalido
+		return 0, "", ErrTokenInvalido
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		if userIDFloat, ok := claims["user_id"].(float64); ok {
-			return uint(userIDFloat), nil
+		userID, idOk := claims["user_id"].(float64)
+		rol, rolOk := claims["rol"].(string)
+		if idOk && rolOk {
+			return uint(userID), rol, nil
 		}
 	}
 
-	return 0, ErrTokenInvalido
+	return 0, "", ErrTokenInvalido
 }

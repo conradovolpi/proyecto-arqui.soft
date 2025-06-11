@@ -4,6 +4,7 @@ import (
 	actividadCtrl "backend/controllers/actividad"
 	inscripcionCtrl "backend/controllers/inscripcion"
 	usuarioCtrl "backend/controllers/usuario"
+	middleware "backend/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,9 +37,10 @@ func SetupRouter(
 	// Grupo de rutas para actividades
 	actividades := r.Group("/actividades")
 	{
-		actividades.POST("/", actividadController.Create)
 		actividades.GET("/", actividadController.GetAll)
 		actividades.GET("/:id", actividadController.GetByID)
+		actividades.Use(middleware.AdminOnly())
+		actividades.POST("/", actividadController.Create)
 		actividades.PUT("/:id", actividadController.Update)
 		actividades.DELETE("/:id", actividadController.Delete)
 	}
