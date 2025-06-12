@@ -11,6 +11,12 @@ import (
 
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Permite las solicitudes OPTIONS (preflight) pasar sin autenticación
+		if c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token requerido"})

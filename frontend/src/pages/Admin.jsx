@@ -2,10 +2,11 @@
 import { useEffect, useState } from 'react';
 import {
   getActivities,
-  addActivity,
-  editActivity,
+  createActivity,
+  updateActivity,
   deleteActivity
-} from '../services/mockData';
+} from '../services/api';
+import { convertScheduleAndDurationToTimeRange } from '../utils/dateUtils';
 
 
 export default function Admin() {
@@ -22,9 +23,25 @@ export default function Admin() {
   });
 
   const [isEditMode, setIsEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getActivities();
+      setActivities(data);
+    } catch (err) {
+      console.error("Error al obtener actividades:", err);
+      setError("Error al cargar las actividades.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setActivities(getActivities());
+    fetchActivities();
   }, []);
 
   const handleChange = (e) => {
@@ -45,35 +62,72 @@ export default function Admin() {
     setIsEditMode(false);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
 
-    const data = {
-      ...form,
-      capacity: Number(form.capacity),
+    const { horario_inicio, horario_fin } = convertScheduleAndDurationToTimeRange(form.schedule, form.duration);
+
+    const dataToSend = {
+      titulo: form.title,
+      descripcion: form.description,
+      instructor: form.instructor,
+      horario_inicio: horario_inicio,
+      horario_fin: horario_fin,
+      cupo: Number(form.capacity),
+      categoria: form.category,
     };
 
-    if (isEditMode) {
-      editActivity(form.id, data);
-    } else {
-      addActivity(data);
+    try {
+      if (isEditMode) {
+        await updateActivity(form.id, dataToSend);
+      } else {
+        await createActivity(dataToSend);
+      }
+      await fetchActivities(); // Refrescar la lista de actividades
+      resetForm();
+    } catch (err) {
+      console.error("Error al guardar actividad:", err);
+      setError(err.message || "Error al guardar la actividad.");
     }
-
-    setActivities(getActivities());
-    resetForm();
   };
 
   const handleEdit = (activity) => {
-    setForm(activity);
+    // Cuando editas, necesitas convertir las fechas de nuevo a schedule y duration
+    // Esto es un placeholder; la implementación real dependerá de cómo se muestren las fechas en la UI para edición
+    setForm({
+      id: activity.actividad_id,
+      title: activity.titulo,
+      description: activity.descripcion,
+      instructor: activity.instructor,
+      schedule: new Date(activity.horario_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+      duration: '', // No tenemos la duración original, se necesitaría un ajuste en el backend o frontend para esto
+      category: activity.categoria,
+      capacity: activity.cupo,
+    });
     setIsEditMode(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('¿Estás seguro que quieres eliminar esta actividad?')) {
-      deleteActivity(id);
-      setActivities(getActivities());
+      setError(null);
+      try {
+        await deleteActivity(id);
+        await fetchActivities(); // Refrescar la lista de actividades
+      } catch (err) {
+        console.error("Error al eliminar actividad:", err);
+        setError(err.message || "Error al eliminar la actividad.");
+      }
     }
   };
+
+  if (loading) {
+    return <div>Cargando actividades...</div>;
+  }
+
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
 
   return (
     <div>

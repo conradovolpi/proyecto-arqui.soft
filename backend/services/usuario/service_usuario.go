@@ -69,7 +69,7 @@ func (s *usuarioService) Login(loginDTO dto.LoginDTO) (*dto.LoginResponseDTO, ut
 		return nil, utils.NewUnauthorizedApiError("Email o contraseña incorrectos")
 	}
 
-	token := utils.GenerateJWT(usuario.UsuarioID, s.jwtSecret)
+	token := utils.GenerateJWT(usuario.UsuarioID, usuario.Rol, s.jwtSecret)
 
 	return &dto.LoginResponseDTO{
 		Token: token,

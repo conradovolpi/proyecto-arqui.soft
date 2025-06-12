@@ -2,10 +2,10 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import {
-  getActivityById,
-  enrollUser,
+  getActivity,
+  enrollInActivity,
   getCurrentUser
-} from '../services/mockData';
+} from '../services/api';
 import CommentForm from '../components/CommentForm';
 
 export default function ActivityDetail() {
@@ -13,42 +13,63 @@ export default function ActivityDetail() {
   const [activity, setActivity] = useState(null);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
   const user = getCurrentUser();
 
-  useEffect(() => {
-    const found = getActivityById(id);
-    if (found) {
-      setActivity({ ...found });
+  const fetchActivity = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const foundActivity = await getActivity(id);
+      setActivity(foundActivity);
+    } catch (err) {
+      console.error("Error al obtener la actividad:", err);
+      setError(err.message || 'Error al cargar la actividad.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchActivity();
   }, [id]);
 
-  const handleInscription = () => {
-    const result = enrollUser(activity.id, user.id);
-    if (result.success) {
-      setMessage(result.msg);
-      setError('');
-    } else {
-      setError(result.msg);
+  const handleInscription = async () => {
+    if (!user) {
+      setError('Debes iniciar sesión para inscribirte.');
+      return;
+    }
+    try {
       setMessage('');
+      setError('');
+      await enrollInActivity(id);
+      setMessage('¡Inscripción exitosa!');
+      // Opcional: Actualizar la actividad para reflejar el nuevo cupo
+      fetchActivity(); 
+    } catch (err) {
+      console.error("Error al inscribirse:", err);
+      setError(err.message || 'Error al inscribirse en la actividad.');
     }
   };
 
-  const handleRefresh = () => {
-    const updated = getActivityById(id);
-    setActivity({ ...updated });
-  };
+  if (loading) {
+    return <p>Cargando actividad...</p>;
+  }
 
-  if (!activity) return <p>Cargando...</p>;
+  if (error) {
+    return <p style={{ color: 'red' }}>Error: {error}</p>;
+  }
+
+  if (!activity) return <p>Actividad no encontrada.</p>;
 
   return (
     <div>
-      <h2>{activity.title}</h2>
-      <p><strong>Descripción:</strong> {activity.description}</p>
+      <h2>{activity.titulo}</h2>
+      <p><strong>Descripción:</strong> {activity.descripcion}</p>
       <p><strong>Profesor:</strong> {activity.instructor}</p>
-      <p><strong>Horario:</strong> {activity.schedule}</p>
-      <p><strong>Duración:</strong> {activity.duration}</p>
-      <p><strong>Categoría:</strong> {activity.category}</p>
-      <p><strong>Cupo:</strong> {activity.enrolledUsers.length}/{activity.capacity}</p>
+      <p><strong>Horario:</strong> {new Date(activity.horario_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {new Date(activity.horario_fin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</p>
+      <p><strong>Categoría:</strong> {activity.categoria}</p>
+      <p><strong>Cupo:</strong> {activity.cupo}</p>
 
       <button onClick={handleInscription}>Inscribirme</button>
       {message && <p style={{ color: 'green' }}>{message}</p>}
@@ -56,7 +77,7 @@ export default function ActivityDetail() {
 
       <hr />
       <h3>Comentarios</h3>
-      {activity.comments.length > 0 ? (
+      {activity.comments && activity.comments.length > 0 ? (
         activity.comments.map((c, i) => (
           <div key={i} style={{ borderTop: '1px solid #ccc', margin: '5px 0' }}>
             <p><strong>⭐ {c.rating}</strong> — {c.text}</p>
@@ -66,7 +87,7 @@ export default function ActivityDetail() {
         <p>No hay comentarios aún.</p>
       )}
 
-      <CommentForm activityId={activity.id} onCommentAdded={handleRefresh} />
+      <CommentForm activityId={activity.actividad_id} onCommentAdded={fetchActivity} />
     </div>
   );
 }

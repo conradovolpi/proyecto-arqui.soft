@@ -1,30 +1,34 @@
 // src/components/Navbar.jsx
-import { Link, useNavigate } from 'react-router-dom';
-import { getCurrentUser, logout } from '../services/mockData';
+import { Link } from 'react-router-dom';
+import { logout } from '../services/api';
 
-export default function Navbar() {
-  const user = getCurrentUser();
-  const navigate = useNavigate();
-
+export default function Navbar({ user, setUser }) {
   const handleLogout = () => {
+    console.log('Navbar: Iniciando cierre de sesión');
     logout();
-    navigate('/login');
+    console.log('Navbar: Sesión cerrada, actualizando estado');
+    setUser(null);
   };
 
   return (
-    <nav>
-      {user ? (
-        <>
-          <Link to="/">Inicio</Link> |{' '}
-          <Link to="/mis-actividades">Mis Actividades</Link>{' '}
-          {user.role === 'admin' && <>| <Link to="/admin">Admin</Link></>}
-          {' '}| <button onClick={handleLogout}>Logout</button>
-        </>
-      ) : (
-        <>
-          <Link to="/login">Login</Link>
-        </>
-      )}
+    <nav className="navbar">
+      <div className="navbar-brand">
+        <Link to="/">Actividades</Link>
+      </div>
+      <div className="navbar-menu">
+        {user ? (
+          <>
+            <Link to="/" className="navbar-item">Inicio</Link>
+            <Link to="/mis-actividades" className="navbar-item">Mis Actividades</Link>
+            {user.rol === 'admin' && (
+              <Link to="/admin" className="navbar-item">Admin</Link>
+            )}
+            <button onClick={handleLogout} className="navbar-item">Cerrar Sesión</button>
+          </>
+        ) : (
+          <Link to="/login" className="navbar-item">Iniciar Sesión</Link>
+        )}
+      </div>
     </nav>
   );
 }

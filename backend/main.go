@@ -13,6 +13,7 @@ import (
 	usuarioSvc "backend/services/usuario"
 	"log"
 
+	"github.com/gin-contrib/cors"
 	"github.com/joho/godotenv"
 )
 
@@ -39,5 +40,14 @@ func main() {
 
 	// Seteo de rutas y servidor
 	r := router.SetupRouter(usuarioController, inscripcionController, actividadController)
+
+	// Configuración de CORS
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:5173"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	config.AllowCredentials = true
+	r.Use(cors.New(config))
+
 	r.Run(":8080") // Servidor corriendo en localhost:8080
 }
