@@ -117,7 +117,7 @@ export const getActivities = async () => {
     }
 
     console.log('Intentando obtener actividades...');
-    const response = await fetch(`${API_URL}/actividades`, {
+    const response = await fetch(`${API_URL}/actividades/`, {
       method: 'GET',
       headers: headers,
       credentials: 'include',
@@ -283,24 +283,31 @@ export const enrollInActivity = async (activityId) => {
     if (!currentUser || !currentUser.id) {
       throw new Error('No se pudo obtener el ID del usuario actual para la inscripción.');
     }
-    const usuarioID = currentUser.id;
+    const usuarioID = Number(currentUser.id);
+    const actividadID = Number(activityId);
 
-    const response = await fetch(`${API_URL}/inscripciones`, {
+    console.log('Intentando inscribirse:', { usuarioID, actividadID });
+
+    const response = await fetch(`${API_URL}/inscripciones/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ usuario_id: usuarioID, actividad_id: activityId }),
+      body: JSON.stringify({ 
+        usuario_id: usuarioID, 
+        actividad_id: actividadID 
+      }),
       credentials: 'include',
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ message: 'Error al inscribirse en la actividad' }));
       throw new Error(errorData.message || 'Error al inscribirse en la actividad');
     }
 
-    return await response.json();
+    const data = await response.json().catch(() => ({ message: 'Inscripción realizada con éxito' }));
+    return data;
   } catch (error) {
     console.error('Error al inscribirse en actividad:', error);
     throw error;

@@ -11,7 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userInscriptions, setUserInscriptions] = useState([]);
-  const currentUser = getCurrentUser();
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Obtener categorías únicas de las actividades
   const categories = [...new Set(activities.map(act => act.categoria))];
@@ -32,10 +32,11 @@ export default function Home() {
       setActivities(allActivities);
       setFiltered(allActivities);
 
-      if (currentUser && currentUser.id) {
-        console.log('Cargando inscripciones del usuario:', currentUser.id);
-        const inscriptions = await getUserInscriptions(currentUser.id);
-        setUserInscriptions(inscriptions.map(insc => insc.id));
+      const user = getCurrentUser();
+      if (user && user.id) {
+        console.log('Cargando inscripciones del usuario:', user.id);
+        const inscriptions = await getUserInscriptions(user.id);
+        setUserInscriptions(inscriptions.map(insc => insc.actividad_id));
       }
 
     } catch (err) {
@@ -47,8 +48,10 @@ export default function Home() {
   };
 
   useEffect(() => {
+    const user = getCurrentUser();
+    setCurrentUser(user);
     fetchAllActivities();
-  }, [currentUser]);
+  }, []); // Solo se ejecuta al montar el componente
 
   const handleSearch = (e) => {
     const value = e.target.value.toLowerCase();
@@ -71,8 +74,7 @@ export default function Home() {
         (act) =>
           act.titulo.toLowerCase().includes(searchValue) ||
           act.categoria.toLowerCase().includes(searchValue) ||
-          (typeof act.horario_inicio === 'string' && act.horario_inicio.includes(searchValue)) ||
-          (typeof act.horario_fin === 'string' && act.horario_fin.includes(searchValue))
+          act.instructor.toLowerCase().includes(searchValue)
       );
     }
 
@@ -92,13 +94,16 @@ export default function Home() {
 
     if (window.confirm('¿Estás seguro de que quieres inscribirte en esta actividad?')) {
       try {
-        await enrollInActivity(activityId);
+        setLoading(true);
+        await enrollInActivity(Number(activityId));
         alert('Inscripción realizada con éxito.');
         // Refrescar la lista de actividades y las inscripciones del usuario
         await fetchAllActivities();
       } catch (err) {
         console.error("Error al inscribirse en actividad:", err);
         setError(err.message || "Error al inscribirse en la actividad.");
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -130,28 +135,30 @@ export default function Home() {
 
   return (
     <div className="home-container">
-      <h2 className="page-title">Actividades Deportivas</h2>
-
-      <div className="filters-container">
+      <h1>Actividades Disponibles</h1>
+      
+      <div className="search-filters">
         <div className="search-box">
           <input
             type="text"
-            placeholder="Buscar por título, categoría u horario"
             value={search}
             onChange={handleSearch}
+            placeholder="Buscar por nombre, categoría o instructor..."
             className="search-input"
           />
         </div>
 
         <div className="category-filter">
-          <select 
-            value={selectedCategory} 
+          <select
+            value={selectedCategory}
             onChange={handleCategoryChange}
             className="category-select"
           >
             <option value="">Todas las categorías</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
             ))}
           </select>
         </div>
