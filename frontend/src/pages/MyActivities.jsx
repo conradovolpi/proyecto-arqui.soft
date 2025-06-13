@@ -74,21 +74,24 @@ export default function MyActivities() {
       <h2>Mis Actividades</h2>
       {myActivities.length > 0 ? (
         <div className="activities-grid">
-          {myActivities.map((activity) => (
-            <ActivityCard 
-              key={activity.actividad_id} 
-              activity={{
-                id: activity.actividad_id,
-                title: activity.titulo,
-                schedule: `${new Date(activity.horario_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - ${new Date(activity.horario_fin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`,
-                instructor: activity.instructor,
-                category: activity.categoria,
-                description: activity.descripcion,
-                fecha_inscripcion: new Date(activity.fecha_inscripcion).toLocaleDateString('es-ES')
-              }} 
-              onCancel={handleCancelInscription}
-            />
-          ))}
+          {myActivities.map((activity) => {
+            console.log('Actividad en MyActivities:', activity);
+            return (
+              <ActivityCard 
+                key={activity.actividad_id} 
+                activity={{
+                  id: activity.actividad_id,
+                  title: activity.titulo,
+                  schedule: `${new Date(activity.horario_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - ${new Date(activity.horario_fin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`,
+                  instructor: activity.instructor,
+                  category: activity.categoria,
+                  description: activity.descripcion,
+                  fecha_inscripcion: new Date(activity.fecha_inscripcion).toLocaleDateString('es-ES')
+                }} 
+                onCancel={handleCancelInscription}
+              />
+            );
+          })}
         </div>
       ) : (
         <p>No estás inscrito en ninguna actividad aún.</p>

@@ -343,11 +343,30 @@ export const getUserInscriptions = async (userId) => {
       throw new Error(errorData.message || 'Error al obtener las inscripciones');
     }
 
-    const data = await response.json();
-    return data || []; // Si la respuesta es nula, devolver array vacío
+    const inscriptions = await response.json();
+    
+    // Obtener los detalles de cada actividad
+    const activitiesWithDetails = await Promise.all(
+      inscriptions.map(async (inscription) => {
+        try {
+          const activity = await getActivity(inscription.actividad_id); // Asume que getActivity existe y funciona
+          return {
+            ...activity,
+            fecha_inscripcion: inscription.fecha_inscripcion
+          };
+        } catch (error) {
+          console.error(`Error al obtener detalles de actividad ${inscription.actividad_id}:`, error);
+          return null; // En caso de error para una actividad, devolver null
+        }
+      })
+    );
+
+    // Filtrar actividades que no se pudieron cargar y devolver solo las válidas
+    return activitiesWithDetails.filter(activity => activity !== null);
+
   } catch (error) {
     console.error('Error al obtener inscripciones:', error);
-    return []; // En caso de error, devolver array vacío
+    return []; // En caso de error general, devolver array vacío
   }
 };
 
