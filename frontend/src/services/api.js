@@ -33,53 +33,65 @@ const removeToken = () => {
 
 // Función para obtener el usuario actual
 export const getCurrentUser = () => {
-  const token = getToken();
-  if (!token) {
-    console.log('API: No hay token, usuario no autenticado');
-    return null;
-  }
-
+  const userStr = localStorage.getItem('user');
+  if (!userStr) return null;
+  
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    console.log('API: Usuario decodificado:', payload);
-    return payload;
+    const user = JSON.parse(userStr);
+    // Asegurarnos de que el usuario tenga un ID
+    if (!user || !user.id) {
+      console.error('Usuario no tiene ID:', user);
+      return null;
+    }
+    return user;
   } catch (error) {
-    console.error('API: Error al decodificar token:', error);
-    removeToken();
+    console.error('Error al parsear usuario:', error);
     return null;
   }
 };
 
-// Función para hacer login
+// Función para iniciar sesión
 export const login = async (email, password) => {
   try {
-    console.log('API: Iniciando login para:', email);
     const response = await fetch(`${API_URL}/usuarios/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ email, password }),
+      credentials: 'include',
     });
 
     const data = await response.json();
-    console.log('API: Respuesta de login:', data);
 
     if (!response.ok) {
-      throw new Error(data.message || 'Error en el login');
+      throw new Error(data.message || 'Error al iniciar sesión');
     }
 
     if (!data.token) {
       throw new Error('No se recibió el token de autenticación');
     }
 
-    setToken(data.token);
-    return data;
-  } catch (error) {
-    console.error('API: Error en login:', error);
-    if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
-      throw new Error('No se puede conectar con el servidor. Por favor, verifique que el servidor esté en ejecución en http://localhost:8080');
+    // Guardar el token
+    localStorage.setItem('token', data.token);
+    
+    // Crear el objeto usuario con los datos que vienen del login
+    const user = {
+      id: data.usuario.usuario_id,
+      email: data.usuario.email,
+      nombre: data.usuario.nombre,
+      rol: data.usuario.rol
+    };
+
+    // Verificar que tenemos todos los datos necesarios
+    if (!user.id) {
+      throw new Error('No se recibió el ID del usuario');
     }
+    
+    localStorage.setItem('user', JSON.stringify(user));
+    return user;
+  } catch (error) {
+    console.error('Error al iniciar sesión:', error);
     throw error;
   }
 };
@@ -94,24 +106,45 @@ export const logout = () => {
 export const getActivities = async () => {
   try {
     const token = getToken();
-    if (!token) {
-      throw new Error('No hay token de autenticación');
+    
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
+    console.log('Intentando obtener actividades...');
     const response = await fetch(`${API_URL}/actividades`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      method: 'GET',
+      headers: headers,
       credentials: 'include',
     });
 
     if (!response.ok) {
-      throw new Error('Error al obtener las actividades');
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error en la respuesta:', response.status, errorData);
+      
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        throw new Error('Sesión expirada');
+      }
+      
+      throw new Error(errorData.message || `Error al obtener las actividades (${response.status})`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    console.log('Actividades obtenidas:', data);
+    return data;
   } catch (error) {
     console.error('Error al obtener actividades:', error);
+    if (error.message === 'Failed to fetch') {
+      throw new Error('No se pudo conectar con el servidor. Por favor, verifica que el servidor esté en ejecución.');
+    }
     throw error;
   }
 };
@@ -127,11 +160,19 @@ export const getActivity = async (id) => {
     const response = await fetch(`${API_URL}/actividades/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
       credentials: 'include',
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Si el token no es válido, redirigir al login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        throw new Error('Sesión expirada');
+      }
       throw new Error('Error al obtener la actividad');
     }
 
@@ -262,6 +303,94 @@ export const enrollInActivity = async (activityId) => {
     return await response.json();
   } catch (error) {
     console.error('Error al inscribirse en actividad:', error);
+    throw error;
+  }
+};
+
+// Función para obtener las inscripciones de un usuario
+export const getUserInscriptions = async (userId) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+
+    const response = await fetch(`${API_URL}/inscripciones/usuario/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        // Si el token no es válido, redirigir al login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        throw new Error('Sesión expirada');
+      }
+      throw new Error('Error al obtener las inscripciones');
+    }
+
+    const inscriptions = await response.json();
+    
+    // Obtener los detalles de cada actividad
+    const activitiesWithDetails = await Promise.all(
+      inscriptions.map(async (inscription) => {
+        try {
+          const activity = await getActivity(inscription.actividad_id);
+          return {
+            ...activity,
+            fecha_inscripcion: inscription.fecha_inscripcion
+          };
+        } catch (error) {
+          console.error(`Error al obtener detalles de actividad ${inscription.actividad_id}:`, error);
+          return null;
+        }
+      })
+    );
+
+    return activitiesWithDetails.filter(activity => activity !== null);
+  } catch (error) {
+    console.error('Error al obtener inscripciones:', error);
+    throw error;
+  }
+};
+
+// Función para desinscribirse de una actividad
+export const cancelInscription = async (userId, activityId) => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No hay token de autenticación');
+    }
+
+    const response = await fetch(`${API_URL}/inscripciones`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ usuario_id: userId, actividad_id: activityId }),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        throw new Error('Sesión expirada o no autorizada');
+      }
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al desinscribirse de la actividad');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error al desinscribirse de actividad:', error);
     throw error;
   }
 };

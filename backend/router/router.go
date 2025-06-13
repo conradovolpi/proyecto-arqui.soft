@@ -6,6 +6,8 @@ import (
 	usuarioCtrl "backend/controllers/usuario"
 	middleware "backend/middleware"
 
+	"log"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -15,16 +17,21 @@ func SetupRouter(
 	inscripcionController *inscripcionCtrl.InscripcionController,
 	actividadController *actividadCtrl.ActividadController,
 ) *gin.Engine {
-	r := gin.Default()
+	// Inicializar Gin y desactivar la redirección de barras diagonales
+	r := gin.New()
+	r.RedirectTrailingSlash = false
 
-	// Configuración de CORS
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-	}))
+	// Añadir middleware de logging y recuperación de Gin
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+
+	// Configuración de CORS: Aplicar aquí, antes de definir las rutas.
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:5173"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	config.AllowCredentials = true
+	r.Use(cors.New(config))
 
 	// Ruta de ping para verificar si el servidor está vivo y CORS funciona
 	r.GET("/ping", func(c *gin.Context) {
@@ -42,24 +49,38 @@ func SetupRouter(
 		usuarios.GET("/:id", usuarioController.GetByID)
 	}
 
-	// Grupo de rutas para inscripciones
+	// Grupo de rutas para inscripciones (requiere autenticación)
 	inscripciones := r.Group("/inscripciones")
+	inscripciones.Use(middleware.AuthRequired())
 	{
 		inscripciones.POST("/", inscripcionController.Inscribir)
-		inscripciones.DELETE("/", inscripcionController.Cancelar)
 		inscripciones.GET("/usuario/:usuario_id", inscripcionController.GetPorUsuario)
 		inscripciones.GET("/actividad/:actividad_id", inscripcionController.GetPorActividad)
+		inscripciones.DELETE("/", inscripcionController.Cancelar)
 	}
 
 	// Grupo de rutas para actividades
 	actividades := r.Group("/actividades")
 	{
-		actividades.Use(middleware.AdminOnly())
+		// Rutas públicas
 		actividades.GET("/", actividadController.GetAll)
 		actividades.GET("/:id", actividadController.GetByID)
-		actividades.POST("/", actividadController.Create)
-		actividades.PUT("/:id", actividadController.Update)
-		actividades.DELETE("/:id", actividadController.Delete)
+
+		// Rutas que requieren ser admin
+		actividadesAdmin := actividades.Group("")
+		actividadesAdmin.Use(middleware.AdminOnly())
+		{
+			actividadesAdmin.POST("/", actividadController.Create)
+			actividadesAdmin.PUT("/:id", actividadController.Update)
+			actividadesAdmin.DELETE("/:id", actividadController.Delete)
+		}
+	}
+
+	// Imprimir todas las rutas registradas
+	routes := r.Routes()
+	log.Println("Rutas registradas:")
+	for _, route := range routes {
+		log.Printf("%s %s", route.Method, route.Path)
 	}
 
 	return r

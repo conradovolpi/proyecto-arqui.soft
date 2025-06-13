@@ -16,16 +16,13 @@ export default function Login({ setUser }) {
     setLoading(true);
 
     try {
-      console.log('Login: Intentando iniciar sesión con email:', email);
-      await login(email, password);
-      console.log('Login: Login exitoso, obteniendo usuario actual...');
-      const currentUser = getCurrentUser();
-      console.log('Login: Usuario actual:', currentUser);
-      setUser(currentUser); // Actualiza el estado del usuario en App.jsx
+      const user = await login(email, password);
+      console.log('Login exitoso:', user);
+      setUser(user);
       navigate('/');
-    } catch (error) {
-      console.error('Login: Error detallado:', error);
-      setError(error.message || 'Error al iniciar sesión. Por favor, intente nuevamente.');
+    } catch (err) {
+      console.error('Error en login:', err);
+      setError(err.message || 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }
@@ -33,10 +30,10 @@ export default function Login({ setUser }) {
 
   return (
     <div className="login-container">
-      <form onSubmit={handleLogin} className="login-form">
-        <h2>Iniciar Sesión</h2>
-        {error && <div className="error-message">{error}</div>}
-        <div className="form-group">
+      <h2>Iniciar Sesión</h2>
+      {error && <div className="error-message">{error}</div>}
+      <form onSubmit={handleLogin}>
+        <div>
           <label htmlFor="email">Email:</label>
           <input
             type="email"
@@ -44,10 +41,9 @@ export default function Login({ setUser }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            disabled={loading}
           />
         </div>
-        <div className="form-group">
+        <div>
           <label htmlFor="password">Contraseña:</label>
           <input
             type="password"
@@ -55,7 +51,6 @@ export default function Login({ setUser }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            disabled={loading}
           />
         </div>
         <button type="submit" disabled={loading}>
