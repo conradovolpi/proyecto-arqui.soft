@@ -367,13 +367,18 @@ export const cancelInscription = async (userId, activityId) => {
       throw new Error('No hay token de autenticación');
     }
 
-    const response = await fetch(`${API_URL}/inscripciones`, {
+    console.log('Cancelando inscripción:', { userId, activityId });
+
+    const response = await fetch(`${API_URL}/inscripciones/`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ usuario_id: userId, actividad_id: activityId }),
+      body: JSON.stringify({ 
+        usuario_id: parseInt(userId), 
+        actividad_id: parseInt(activityId) 
+      }),
       credentials: 'include',
     });
 

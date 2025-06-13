@@ -3,6 +3,7 @@ package actividad
 import (
 	"backend/clients"
 	"backend/models"
+	"log"
 )
 
 type ActividadClientInterface interface {
@@ -24,9 +25,15 @@ func (a *actividadClient) GetByID(id uint) (*models.Actividad, error) {
 }
 
 func (a *actividadClient) GetAll() ([]models.Actividad, error) {
+	log.Printf("Iniciando GetAll en el cliente de actividades")
 	var acts []models.Actividad
 	err := clients.Db.Find(&acts).Error
-	return acts, err
+	if err != nil {
+		log.Printf("Error en cliente GetAll: %v", err)
+		return nil, err
+	}
+	log.Printf("Actividades obtenidas de la base de datos: %d actividades", len(acts))
+	return acts, nil
 }
 
 func (a *actividadClient) Create(act models.Actividad) (models.Actividad, error) {

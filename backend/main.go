@@ -40,7 +40,7 @@ func main() {
 
 	// Seteo de rutas
 	// Obtener el motor de Gin
-	r := router.SetupRouter(usuarioController, inscripcionController, actividadController)
+	r := router.SetupRouter(usuarioController, actividadController, inscripcionController)
 
 	// La configuración de CORS se maneja ahora dentro de router.go, no aquí.
 	// config := cors.DefaultConfig()

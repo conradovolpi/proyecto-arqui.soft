@@ -44,9 +44,22 @@ func (ic *InscripcionController) Inscribir(c *gin.Context) {
 }
 
 func (ic *InscripcionController) Cancelar(c *gin.Context) {
+	// Obtener el ID del usuario del token JWT
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, utils.NewUnauthorizedApiError("Usuario no autenticado"))
+		return
+	}
+
 	var dto dto.InscripcionCreateDTO
 	if err := c.ShouldBindJSON(&dto); err != nil {
 		c.JSON(http.StatusBadRequest, utils.NewBadRequestApiError("Datos inválidos"))
+		return
+	}
+
+	// Verificar que el usuario del token coincida con el usuario de la petición
+	if userID.(uint) != dto.UsuarioID {
+		c.JSON(http.StatusForbidden, utils.NewForbiddenApiError("No tienes permiso para cancelar esta inscripción"))
 		return
 	}
 
@@ -55,7 +68,7 @@ func (ic *InscripcionController) Cancelar(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Inscripción cancelada"})
+	c.JSON(http.StatusOK, gin.H{"message": "Inscripción cancelada con éxito"})
 }
 
 func (ic *InscripcionController) GetPorUsuario(c *gin.Context) {

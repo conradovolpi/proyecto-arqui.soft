@@ -4,6 +4,7 @@ import (
 	"backend/clients/actividad"
 	"backend/dto"
 	"backend/models"
+	"log"
 )
 
 type ActividadServiceInterface interface {
@@ -68,11 +69,14 @@ func (s *actividadService) GetByID(id uint) (dto.ActividadResponseDTO, error) {
 }
 
 func (s *actividadService) GetAll() ([]dto.ActividadResponseDTO, error) {
+	log.Printf("Iniciando GetAll en el servicio de actividades")
 	acts, err := s.client.GetAll()
 	if err != nil {
+		log.Printf("Error en servicio GetAll: %v", err)
 		return nil, err
 	}
 
+	log.Printf("Actividades obtenidas del cliente: %d actividades", len(acts))
 	var res []dto.ActividadResponseDTO
 	for _, a := range acts {
 		res = append(res, dto.ActividadResponseDTO{
@@ -86,6 +90,7 @@ func (s *actividadService) GetAll() ([]dto.ActividadResponseDTO, error) {
 			Categoria:     a.Categoria,
 		})
 	}
+	log.Printf("Transformación de actividades completada")
 	return res, nil
 }
 

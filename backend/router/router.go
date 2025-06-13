@@ -14,8 +14,8 @@ import (
 
 func SetupRouter(
 	usuarioController *usuarioCtrl.UsuarioController,
-	inscripcionController *inscripcionCtrl.InscripcionController,
 	actividadController *actividadCtrl.ActividadController,
+	inscripcionController *inscripcionCtrl.InscripcionController,
 ) *gin.Engine {
 	// Inicializar Gin y desactivar la redirección de barras diagonales
 	r := gin.New()

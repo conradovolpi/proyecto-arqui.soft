@@ -4,10 +4,12 @@ import (
 	"backend/dto"
 	actividad "backend/services/actividad"
 	"backend/utils"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type ActividadController struct {
@@ -51,11 +53,20 @@ func (ac *ActividadController) GetByID(c *gin.Context) {
 }
 
 func (ac *ActividadController) GetAll(c *gin.Context) {
+	log.Printf("Iniciando GetAll de actividades")
 	result, err := ac.service.GetAll()
 	if err != nil {
+		log.Printf("Error obteniendo actividades: %v", err)
+		if err == gorm.ErrRecordNotFound {
+			log.Printf("No se encontraron actividades en la base de datos")
+			c.JSON(http.StatusOK, []dto.ActividadResponseDTO{})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, utils.NewInternalServerApiError("Error obteniendo actividades", err))
 		return
 	}
+
+	log.Printf("Actividades obtenidas exitosamente: %d actividades", len(result))
 	c.JSON(http.StatusOK, result)
 }
 

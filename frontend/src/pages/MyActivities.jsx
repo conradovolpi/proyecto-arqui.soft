@@ -46,12 +46,17 @@ export default function MyActivities() {
     
     if (window.confirm('¿Estás seguro de que quieres cancelar la inscripción a esta actividad?')) {
       try {
+        setLoading(true);
+        setError(null);
+        console.log('Intentando cancelar inscripción:', { userId: user.id, activityId });
         await cancelInscription(user.id, activityId);
         alert('Inscripción cancelada con éxito.');
-        fetchActivities(); // Refrescar la lista de actividades
+        await fetchActivities(); // Refrescar la lista de actividades
       } catch (err) {
         console.error("Error al cancelar inscripción:", err);
         setError(err.message || "Error al cancelar la inscripción.");
+      } finally {
+        setLoading(false);
       }
     }
   };
