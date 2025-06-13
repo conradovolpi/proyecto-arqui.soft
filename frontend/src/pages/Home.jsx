@@ -36,7 +36,11 @@ export default function Home() {
       if (user && user.id) {
         console.log('Cargando inscripciones del usuario:', user.id);
         const inscriptions = await getUserInscriptions(user.id);
-        setUserInscriptions(inscriptions.map(insc => insc.actividad_id));
+        if (Array.isArray(inscriptions)) {
+          setUserInscriptions(inscriptions.map(insc => insc.actividad_id));
+        } else {
+          setUserInscriptions([]);
+        }
       }
 
     } catch (err) {

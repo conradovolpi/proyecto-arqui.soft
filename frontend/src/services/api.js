@@ -191,7 +191,9 @@ export const createActivity = async (activity) => {
       throw new Error('No hay token de autenticación');
     }
 
-    const response = await fetch(`${API_URL}/actividades`, {
+    console.log('Intentando crear actividad:', activity);
+
+    const response = await fetch(`${API_URL}/actividades/`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -202,11 +204,12 @@ export const createActivity = async (activity) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ message: 'Error al crear la actividad' }));
       throw new Error(errorData.message || 'Error al crear la actividad');
     }
 
-    return await response.json();
+    const data = await response.json().catch(() => ({ message: 'Actividad creada con éxito' }));
+    return data;
   } catch (error) {
     console.error('Error al crear actividad:', error);
     throw error;
@@ -221,6 +224,8 @@ export const updateActivity = async (id, activity) => {
       throw new Error('No hay token de autenticación');
     }
 
+    console.log('Intentando actualizar actividad:', { id, activity });
+
     const response = await fetch(`${API_URL}/actividades/${id}`, {
       method: 'PUT',
       headers: {
@@ -232,11 +237,12 @@ export const updateActivity = async (id, activity) => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({ message: 'Error al actualizar la actividad' }));
       throw new Error(errorData.message || 'Error al actualizar la actividad');
     }
 
-    return await response.json();
+    const data = await response.json().catch(() => ({ message: 'Actividad actualizada con éxito' }));
+    return data;
   } catch (error) {
     console.error('Error al actualizar actividad:', error);
     throw error;
@@ -325,44 +331,23 @@ export const getUserInscriptions = async (userId) => {
     const response = await fetch(`${API_URL}/inscripciones/usuario/${userId}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
       },
       credentials: 'include',
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        // Si el token no es válido, redirigir al login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-        throw new Error('Sesión expirada');
+      if (response.status === 404) {
+        return []; // Si no hay inscripciones, devolver array vacío
       }
-      throw new Error('Error al obtener las inscripciones');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Error al obtener las inscripciones');
     }
 
-    const inscriptions = await response.json();
-    
-    // Obtener los detalles de cada actividad
-    const activitiesWithDetails = await Promise.all(
-      inscriptions.map(async (inscription) => {
-        try {
-          const activity = await getActivity(inscription.actividad_id);
-          return {
-            ...activity,
-            fecha_inscripcion: inscription.fecha_inscripcion
-          };
-        } catch (error) {
-          console.error(`Error al obtener detalles de actividad ${inscription.actividad_id}:`, error);
-          return null;
-        }
-      })
-    );
-
-    return activitiesWithDetails.filter(activity => activity !== null);
+    const data = await response.json();
+    return data || []; // Si la respuesta es nula, devolver array vacío
   } catch (error) {
     console.error('Error al obtener inscripciones:', error);
-    throw error;
+    return []; // En caso de error, devolver array vacío
   }
 };
 

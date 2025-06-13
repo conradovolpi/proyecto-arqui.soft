@@ -80,6 +80,7 @@ export default function Admin() {
 
     try {
       if (isEditMode) {
+        console.log('Editando actividad:', { id: form.id, data: dataToSend });
         await updateActivity(form.id, dataToSend);
       } else {
         await createActivity(dataToSend);
@@ -93,8 +94,7 @@ export default function Admin() {
   };
 
   const handleEdit = (activity) => {
-    // Cuando editas, necesitas convertir las fechas de nuevo a schedule y duration
-    // Esto es un placeholder; la implementación real dependerá de cómo se muestren las fechas en la UI para edición
+    console.log('Editando actividad:', activity);
     setForm({
       id: activity.actividad_id,
       title: activity.titulo,
@@ -199,11 +199,11 @@ export default function Admin() {
 
       <h3>Lista de actividades</h3>
       {activities.map((a) => (
-        <div key={a.id} style={{ border: '1px solid gray', padding: '10px', margin: '10px' }}>
-          <strong>{a.title}</strong> — {a.schedule} — {a.instructor} <br />
-          <small>{a.description}</small><br />
+        <div key={a.actividad_id} style={{ border: '1px solid gray', padding: '10px', margin: '10px' }}>
+          <strong>{a.titulo}</strong> — {new Date(a.horario_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} — {a.instructor} <br />
+          <small>{a.descripcion}</small><br />
           <button onClick={() => handleEdit(a)}>Editar</button>
-          <button onClick={() => handleDelete(a.id)}>Eliminar</button>
+          <button onClick={() => handleDelete(a.actividad_id)}>Eliminar</button>
         </div>
       ))}
     </div>
