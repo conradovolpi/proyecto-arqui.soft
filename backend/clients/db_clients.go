@@ -16,6 +16,8 @@ var (
 )
 
 func ConnectDatabase() {
+	// Ya no se carga ningún archivo .env acá
+
 	dbUsername := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")

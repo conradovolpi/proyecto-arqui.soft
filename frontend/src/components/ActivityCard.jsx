@@ -2,7 +2,10 @@
 import { Link } from 'react-router-dom';
 
 export default function ActivityCard({ activity, onCancel, onEnroll, isEnrolled }) {
-  const isFull = activity.currentEnrollments >= activity.capacity;
+  const isFull = activity.availableSpots <= 0;
+  const enrolledCount = activity.currentEnrollments;
+  const totalCapacity = activity.capacity;
+  const availableSpots = activity.availableSpots;
 
   return (
     <div className="activity-card">
@@ -10,7 +13,7 @@ export default function ActivityCard({ activity, onCancel, onEnroll, isEnrolled 
       <p><strong>Horario:</strong> {activity.schedule}</p>
       <p><strong>Profesor:</strong> {activity.instructor}</p>
       <p><strong>Categoría:</strong> {activity.category}</p>
-      <p><strong>Cupos:</strong> {activity.currentEnrollments}/{activity.capacity}</p>
+      <p><strong>Cupos:</strong> {enrolledCount}/{totalCapacity}</p>
       {activity.fecha_inscripcion && (
         <p><strong>Fecha de inscripción:</strong> {activity.fecha_inscripcion}</p>
       )}
@@ -32,7 +35,9 @@ export default function ActivityCard({ activity, onCancel, onEnroll, isEnrolled 
         </button>
       )}
       {onEnroll && isFull && !isEnrolled && (
-        <p className="text-red-500">Cupos llenos</p>
+        <p className="text-red-500" style={{ color: 'red', fontWeight: 'bold' }}>
+          ❌ Cupos llenos
+        </p>
       )}
     </div>
   );

@@ -5,8 +5,7 @@ import (
 	inscripcionCtrl "backend/controllers/inscripcion"
 	usuarioCtrl "backend/controllers/usuario"
 	middleware "backend/middleware"
-
-	"log"
+	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -17,40 +16,37 @@ func SetupRouter(
 	actividadController *actividadCtrl.ActividadController,
 	inscripcionController *inscripcionCtrl.InscripcionController,
 ) *gin.Engine {
-	// Inicializar Gin y desactivar la redirección de barras diagonales
-	r := gin.New()
-	r.RedirectTrailingSlash = false
+	router := gin.Default()
 
-	// Añadir middleware de logging y recuperación de Gin
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	// 🔁 Middleware CORS
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "X-Requested-With"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
-	// Configuración de CORS: Aplicar aquí, antes de definir las rutas.
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:5173"}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
-	config.AllowCredentials = true
-	r.Use(cors.New(config))
+	// 🔽 Rutas de health check
+	router.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{"message": "pong"})
+	})
 
-	// Ruta de ping para verificar si el servidor está vivo y CORS funciona
-	r.GET("/ping", func(c *gin.Context) {
+	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"message": "pong",
+			"status":    "healthy",
+			"timestamp": time.Now().Unix(),
 		})
 	})
 
-	// Grupo de rutas para usuarios
-	usuarios := r.Group("/usuarios")
-	{
-		usuarios.POST("/", usuarioController.Create)
-		usuarios.POST("/login", usuarioController.Login)
-		usuarios.GET("/", usuarioController.GetAll)
-		usuarios.GET("/:id", usuarioController.GetByID)
-	}
+	// Rutas de usuario
+	router.POST("/usuarios/", usuarioController.Create)
+	router.POST("/usuarios/login", usuarioController.Login)
+	router.GET("/usuarios/", usuarioController.GetAll)
+	router.GET("/usuarios/:id", usuarioController.GetByID)
 
-	// Grupo de rutas para inscripciones (requiere autenticación)
-	inscripciones := r.Group("/inscripciones")
+	// Rutas de inscripciones (con autenticación)
+	inscripciones := router.Group("/inscripciones")
 	inscripciones.Use(middleware.AuthRequired())
 	{
 		inscripciones.POST("/", inscripcionController.Inscribir)
@@ -59,29 +55,18 @@ func SetupRouter(
 		inscripciones.DELETE("/", inscripcionController.Cancelar)
 	}
 
-	// Grupo de rutas para actividades
-	actividades := r.Group("/actividades")
+	// Rutas de actividades (públicas)
+	router.GET("/actividades/", actividadController.GetAll)
+	router.GET("/actividades/:id", actividadController.GetByID)
+
+	// Rutas de actividades que requieren ser admin
+	actividadesAdmin := router.Group("/actividades")
+	actividadesAdmin.Use(middleware.AdminOnly())
 	{
-		// Rutas públicas
-		actividades.GET("/", actividadController.GetAll)
-		actividades.GET("/:id", actividadController.GetByID)
-
-		// Rutas que requieren ser admin
-		actividadesAdmin := actividades.Group("")
-		actividadesAdmin.Use(middleware.AdminOnly())
-		{
-			actividadesAdmin.POST("/", actividadController.Create)
-			actividadesAdmin.PUT("/:id", actividadController.Update)
-			actividadesAdmin.DELETE("/:id", actividadController.Delete)
-		}
+		actividadesAdmin.POST("/", actividadController.Create)
+		actividadesAdmin.PUT("/:id", actividadController.Update)
+		actividadesAdmin.DELETE("/:id", actividadController.Delete)
 	}
 
-	// Imprimir todas las rutas registradas
-	routes := r.Routes()
-	log.Println("Rutas registradas:")
-	for _, route := range routes {
-		log.Printf("%s %s", route.Method, route.Path)
-	}
-
-	return r
+	return router
 }

@@ -1,0 +1,49 @@
+# Archivos de desarrollo
+*.log
+*.tmp
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de Git
+.git/
+.gitignore
+
+# Archivos de testing
+*_test.go
+test/
+tests/
+
+# Documentación
+README.md
+*.md
+
+# Archivos de Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+docker-compose.yaml
+
+# Archivos de CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Archivos de build
+build/
+dist/
+bin/

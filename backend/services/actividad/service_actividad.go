@@ -1,6 +1,7 @@
 package services
 
 import (
+	"backend/clients"
 	"backend/clients/actividad"
 	"backend/dto"
 	"backend/models"
@@ -23,6 +24,17 @@ func NewActividadService(c actividad.ActividadClientInterface) ActividadServiceI
 	return &actividadService{client: c}
 }
 
+// Helper function para calcular cupos disponibles
+func (s *actividadService) calcularCuposDisponibles(actividadID uint, cupoTotal int) int {
+	var inscripcionesCount int64
+	clients.Db.Model(&models.Inscripcion{}).Where("actividad_id = ?", actividadID).Count(&inscripcionesCount)
+	cuposDisponibles := cupoTotal - int(inscripcionesCount)
+	if cuposDisponibles < 0 {
+		cuposDisponibles = 0
+	}
+	return cuposDisponibles
+}
+
 func (s *actividadService) CrearActividad(d dto.ActividadCreateDTO) (dto.ActividadResponseDTO, error) {
 	a := models.Actividad{
 		HorarioInicio: d.HorarioInicio,
@@ -40,14 +52,15 @@ func (s *actividadService) CrearActividad(d dto.ActividadCreateDTO) (dto.Activid
 	}
 
 	return dto.ActividadResponseDTO{
-		ActividadID:   actividad.ActividadID,
-		HorarioInicio: actividad.HorarioInicio,
-		HorarioFin:    actividad.HorarioFin,
-		Titulo:        actividad.Titulo,
-		Descripcion:   actividad.Descripcion,
-		Instructor:    actividad.Instructor,
-		Cupo:          actividad.Cupo,
-		Categoria:     actividad.Categoria,
+		ActividadID:      actividad.ActividadID,
+		HorarioInicio:    actividad.HorarioInicio,
+		HorarioFin:       actividad.HorarioFin,
+		Titulo:           actividad.Titulo,
+		Descripcion:      actividad.Descripcion,
+		Instructor:       actividad.Instructor,
+		Cupo:             actividad.Cupo,
+		CuposDisponibles: actividad.Cupo, // Nueva actividad, todos los cupos disponibles
+		Categoria:        actividad.Categoria,
 	}, nil
 }
 
@@ -56,15 +69,19 @@ func (s *actividadService) GetByID(id uint) (dto.ActividadResponseDTO, error) {
 	if err != nil {
 		return dto.ActividadResponseDTO{}, err
 	}
+
+	cuposDisponibles := s.calcularCuposDisponibles(a.ActividadID, a.Cupo)
+
 	return dto.ActividadResponseDTO{
-		ActividadID:   a.ActividadID,
-		HorarioInicio: a.HorarioInicio,
-		HorarioFin:    a.HorarioFin,
-		Titulo:        a.Titulo,
-		Descripcion:   a.Descripcion,
-		Instructor:    a.Instructor,
-		Cupo:          a.Cupo,
-		Categoria:     a.Categoria,
+		ActividadID:      a.ActividadID,
+		HorarioInicio:    a.HorarioInicio,
+		HorarioFin:       a.HorarioFin,
+		Titulo:           a.Titulo,
+		Descripcion:      a.Descripcion,
+		Instructor:       a.Instructor,
+		Cupo:             a.Cupo,
+		CuposDisponibles: cuposDisponibles,
+		Categoria:        a.Categoria,
 	}, nil
 }
 
@@ -79,15 +96,17 @@ func (s *actividadService) GetAll() ([]dto.ActividadResponseDTO, error) {
 	log.Printf("Actividades obtenidas del cliente: %d actividades", len(acts))
 	var res []dto.ActividadResponseDTO
 	for _, a := range acts {
+		cuposDisponibles := s.calcularCuposDisponibles(a.ActividadID, a.Cupo)
 		res = append(res, dto.ActividadResponseDTO{
-			ActividadID:   a.ActividadID,
-			HorarioInicio: a.HorarioInicio,
-			HorarioFin:    a.HorarioFin,
-			Titulo:        a.Titulo,
-			Descripcion:   a.Descripcion,
-			Instructor:    a.Instructor,
-			Cupo:          a.Cupo,
-			Categoria:     a.Categoria,
+			ActividadID:      a.ActividadID,
+			HorarioInicio:    a.HorarioInicio,
+			HorarioFin:       a.HorarioFin,
+			Titulo:           a.Titulo,
+			Descripcion:      a.Descripcion,
+			Instructor:       a.Instructor,
+			Cupo:             a.Cupo,
+			CuposDisponibles: cuposDisponibles,
+			Categoria:        a.Categoria,
 		})
 	}
 	log.Printf("Transformación de actividades completada")
@@ -109,5 +128,17 @@ func (s *actividadService) Update(id uint, act dto.ActividadCreateDTO) error {
 }
 
 func (s *actividadService) Delete(id uint) error {
+	// Verificar que la actividad existe antes de eliminar
+	_, err := s.client.GetByID(id)
+	if err != nil {
+		return err
+	}
+
+	// Eliminar primero todas las inscripciones relacionadas
+	if err := clients.Db.Where("actividad_id = ?", id).Delete(&models.Inscripcion{}).Error; err != nil {
+		return err
+	}
+
+	// Luego eliminar la actividad
 	return s.client.Delete(id)
 }

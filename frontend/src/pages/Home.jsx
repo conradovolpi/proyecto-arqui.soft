@@ -181,7 +181,8 @@ export default function Home() {
                 category: act.categoria,
                 description: act.descripcion,
                 capacity: act.cupo,
-                currentEnrollments: act.inscripciones ? act.inscripciones.length : 0,
+                currentEnrollments: act.cupo - (act.cupos_disponibles || 0),
+                availableSpots: act.cupos_disponibles || 0,
               }}
               onEnroll={handleEnroll}
               isEnrolled={userInscriptions.includes(act.actividad_id)}

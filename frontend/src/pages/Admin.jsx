@@ -202,6 +202,8 @@ export default function Admin() {
         <div key={a.actividad_id} style={{ border: '1px solid gray', padding: '10px', margin: '10px' }}>
           <strong>{a.titulo}</strong> — {new Date(a.horario_inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} — {a.instructor} <br />
           <small>{a.descripcion}</small><br />
+          <strong>Cupos:</strong> {a.cupo - (a.cupos_disponibles || 0)}/{a.cupo}
+          <br />
           <button onClick={() => handleEdit(a)}>Editar</button>
           <button onClick={() => handleDelete(a.actividad_id)}>Eliminar</button>
         </div>

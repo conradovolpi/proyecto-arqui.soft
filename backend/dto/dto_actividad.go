@@ -13,12 +13,13 @@ type ActividadCreateDTO struct {
 }
 
 type ActividadResponseDTO struct {
-	ActividadID   uint      `json:"actividad_id"`
-	HorarioInicio time.Time `json:"horario_inicio"`
-	HorarioFin    time.Time `json:"horario_fin"`
-	Titulo        string    `json:"titulo"`
-	Descripcion   string    `json:"descripcion"`
-	Instructor    string    `json:"instructor"`
-	Cupo          int       `json:"cupo"`
-	Categoria     string    `json:"categoria"`
+	ActividadID      uint      `json:"actividad_id"`
+	HorarioInicio    time.Time `json:"horario_inicio"`
+	HorarioFin       time.Time `json:"horario_fin"`
+	Titulo           string    `json:"titulo"`
+	Descripcion      string    `json:"descripcion"`
+	Instructor       string    `json:"instructor"`
+	Cupo             int       `json:"cupo"`
+	CuposDisponibles int       `json:"cupos_disponibles"`
+	Categoria        string    `json:"categoria"`
 }
