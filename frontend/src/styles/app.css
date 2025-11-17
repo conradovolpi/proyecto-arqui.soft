@@ -1,8 +1,15 @@
 body {
     font-family: sans-serif;
-    background-color: #f9f9f9;
+    background-image: url('/background.jpg?v=7');
+    background-size: 100vw 100vh;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-color: #0a0a0a;
     margin: 0;
-    padding: 20px;
+    padding: 0;
+    min-height: 100vh;
+    width: 100%;
   }
   
   h2, h3, h4 {
@@ -10,9 +17,13 @@ body {
   }
   
   nav {
-    background-color: #333;
+    background-color: rgba(51, 51, 51, 0.6);
     padding: 1rem;
     color: white;
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   
   nav a {
@@ -23,6 +34,43 @@ body {
   
   nav a:hover {
     text-decoration: underline;
+  }
+
+  .navbar-brand {
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+
+  .navbar-menu {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .navbar-item {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+  }
+
+  .navbar-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+  }
+
+  nav button.navbar-item {
+    background-color: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: inherit;
+    font-family: inherit;
+  }
+
+  nav button.navbar-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
   
   input, select, textarea, button {
@@ -98,6 +146,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background: transparent;
   }
   
   .container {
@@ -105,5 +154,6 @@ body {
     margin: 0 auto;
     padding: 20px;
     flex: 1;
+    background: transparent;
   }
   
