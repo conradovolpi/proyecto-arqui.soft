@@ -16,7 +16,7 @@ func GenerateJWT(usuarioID uint, rol, secret string) string {
 	claims := jwt.MapClaims{
 		"user_id": usuarioID,
 		"rol":     rol,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     time.Now().Add(time.Hour * 1).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
