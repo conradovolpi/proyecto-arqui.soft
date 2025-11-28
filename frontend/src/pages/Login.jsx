@@ -16,14 +16,30 @@ export default function Login({ setUser }) {
     setLoading(true);
 
     try {
+      console.log('Login: Intentando iniciar sesión...');
       const user = await login(email, password);
-      console.log('Login exitoso:', user);
-      setUser(user);
-      navigate('/');
+      console.log('Login: Login exitoso, usuario recibido:', user);
+      
+      // Verificar que el usuario se guardó correctamente en localStorage
+      const savedUser = getCurrentUser();
+      console.log('Login: Usuario leído de localStorage:', savedUser);
+      
+      if (!savedUser || !savedUser.id) {
+        console.error('Login: El usuario no se guardó correctamente en localStorage');
+        throw new Error('Error al guardar la sesión. Por favor, intenta nuevamente.');
+      }
+      
+      // Actualizar el estado del usuario
+      console.log('Login: Actualizando estado del usuario');
+      setUser(savedUser);
+      
+      // Forzar una recarga completa para asegurar que App.jsx lea el usuario de localStorage
+      // Esto garantiza que el estado se sincronice correctamente
+      console.log('Login: Recargando página para sincronizar estado');
+      window.location.href = '/';
     } catch (err) {
-      console.error('Error en login:', err);
+      console.error('Login: Error capturado:', err);
       setError(err.message || 'Error al iniciar sesión');
-    } finally {
       setLoading(false);
     }
   };

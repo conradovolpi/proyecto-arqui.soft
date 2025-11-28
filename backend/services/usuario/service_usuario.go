@@ -1,14 +1,15 @@
 package services
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"log"
 	"os"
 
 	"backend/clients/usuario"
 	"backend/dto"
 	"backend/models"
 	"backend/utils"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UsuarioService interface {
@@ -35,21 +36,39 @@ func NewUsuarioService() UsuarioService {
 }
 
 func (s *usuarioService) Create(u dto.UsuarioCreateDTO) (*dto.UsuarioResponseDTO, utils.ApiError) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, utils.NewInternalServerApiError("Error al hashear la contraseña", err)
-	}
+	// Hashear la contraseña con SHA256
+	hash := sha256.Sum256([]byte(u.Password))
+	hashedPassword := hex.EncodeToString(hash[:])
+
+	log.Printf("Create: Creando usuario - Email: %s, Hash length: %d, Hash: %s", u.Email, len(hashedPassword), hashedPassword)
 
 	usuario := &models.Usuario{
 		Nombre:   u.Nombre,
 		Email:    u.Email,
-		Password: string(hashed),
+		Password: hashedPassword,
 		Rol:      u.Rol,
 	}
 
 	if err := s.client.CreateUser(usuario); err != nil {
+		log.Printf("Create: Error al crear usuario: %v", err)
 		return nil, utils.NewInternalServerApiError("Error creando usuario", err)
 	}
+
+	// Verificar que el usuario se guardó correctamente leyéndolo de nuevo
+	usuarioVerificado, err := s.client.GetByID(usuario.UsuarioID)
+	if err != nil {
+		log.Printf("Create: Advertencia - No se pudo verificar el usuario creado: %v", err)
+	} else {
+		log.Printf("Create: Usuario verificado - ID: %d, Email: %s, Hash guardado length: %d", 
+			usuarioVerificado.UsuarioID, usuarioVerificado.Email, len(usuarioVerificado.Password))
+		if usuarioVerificado.Password != hashedPassword {
+			log.Printf("Create: ERROR - El hash guardado no coincide con el hash calculado!")
+			log.Printf("Create: Hash calculado: %s", hashedPassword)
+			log.Printf("Create: Hash guardado: %s", usuarioVerificado.Password)
+		}
+	}
+
+	log.Printf("Create: Usuario creado exitosamente - ID: %d, Email: %s", usuario.UsuarioID, usuario.Email)
 
 	return &dto.UsuarioResponseDTO{
 		UsuarioID: usuario.UsuarioID,
@@ -60,17 +79,39 @@ func (s *usuarioService) Create(u dto.UsuarioCreateDTO) (*dto.UsuarioResponseDTO
 }
 
 func (s *usuarioService) Login(loginDTO dto.LoginDTO) (*dto.LoginResponseDTO, utils.ApiError) {
+	log.Printf("Login: Buscando usuario con email: %s", loginDTO.Email)
 	usuario, err := s.client.GetByEmail(loginDTO.Email)
 	if err != nil {
+		log.Printf("Login: Error al buscar usuario: %v", err)
 		return nil, utils.NewUnauthorizedApiError("Email o contraseña incorrectos")
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(usuario.Password), []byte(loginDTO.Password)) != nil {
+	log.Printf("Login: Usuario encontrado - ID: %d, Email: %s", usuario.UsuarioID, usuario.Email)
+	log.Printf("Login: Hash almacenado en BD - Length: %d, Hash: %s", len(usuario.Password), usuario.Password)
+
+	// Hashear la contraseña proporcionada con SHA256 para comparar
+	hash := sha256.Sum256([]byte(loginDTO.Password))
+	hashedPassword := hex.EncodeToString(hash[:])
+
+	log.Printf("Login: Hash calculado de password ingresado - Length: %d, Hash: %s", len(hashedPassword), hashedPassword)
+	log.Printf("Login: Comparando contraseñas hasheadas...")
+	log.Printf("Login: Hash BD == Hash calculado? %v", usuario.Password == hashedPassword)
+
+	// Limpiar espacios en blanco por si acaso
+	storedHash := usuario.Password
+	calculatedHash := hashedPassword
+
+	if storedHash != calculatedHash {
+		log.Printf("Login: ERROR - Los hashes no coinciden")
+		log.Printf("Login: Hash almacenado: '%s'", storedHash)
+		log.Printf("Login: Hash calculado: '%s'", calculatedHash)
 		return nil, utils.NewUnauthorizedApiError("Email o contraseña incorrectos")
 	}
 
+	log.Printf("Login: Contraseña correcta, generando token...")
 	token := utils.GenerateJWT(usuario.UsuarioID, usuario.Rol, s.jwtSecret)
 
+	log.Printf("Login: Token generado exitosamente para usuario ID: %d", usuario.UsuarioID)
 	return &dto.LoginResponseDTO{
 		Token: token,
 		Usuario: dto.UsuarioResponseDTO{

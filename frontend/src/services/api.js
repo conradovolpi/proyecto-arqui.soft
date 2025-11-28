@@ -53,6 +53,7 @@ export const getCurrentUser = () => {
 // Función para iniciar sesión
 export const login = async (email, password) => {
   try {
+    console.log('API: Iniciando login para:', email);
     const response = await fetch(`${API_URL}/usuarios/login`, {
       method: 'POST',
       headers: {
@@ -62,37 +63,95 @@ export const login = async (email, password) => {
       credentials: 'include',
     });
 
-    const data = await response.json();
+    console.log('API: Respuesta recibida, status:', response.status);
+    
+    // Verificar el Content-Type antes de parsear
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('API: Respuesta no es JSON. Content-Type:', contentType);
+      console.error('API: Respuesta como texto:', text);
+      throw new Error('El servidor no devolvió una respuesta JSON válida');
+    }
+    
+    let data;
+    try {
+      const text = await response.text();
+      console.log('API: Respuesta como texto (antes de parsear):', text);
+      if (!text || text.trim() === '') {
+        throw new Error('La respuesta del servidor está vacía');
+      }
+      data = JSON.parse(text);
+      console.log('API: Datos recibidos (parseados):', data);
+    } catch (parseError) {
+      console.error('API: Error al parsear JSON de la respuesta:', parseError);
+      const text = await response.text();
+      console.error('API: Respuesta como texto (error):', text);
+      throw new Error('Error al procesar la respuesta del servidor: ' + parseError.message);
+    }
 
     if (!response.ok) {
-      throw new Error(data.message || 'Error al iniciar sesión');
+      // Limpiar localStorage en caso de error
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      const errorMessage = data.message || data.error || 'Error al iniciar sesión';
+      console.error('API: Error en respuesta:', errorMessage);
+      throw new Error(errorMessage);
     }
 
     if (!data.token) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      console.error('API: No se recibió token en la respuesta');
       throw new Error('No se recibió el token de autenticación');
     }
 
-    // Guardar el token
-    localStorage.setItem('token', data.token);
-    
-    // Crear el objeto usuario con los datos que vienen del login
-    const user = {
-      id: data.usuario.usuario_id,
-      email: data.usuario.email,
-      nombre: data.usuario.nombre,
-      rol: data.usuario.rol
-    };
+    // Validar que existe el objeto usuario
+    if (!data.usuario) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      console.error('API: No se recibió objeto usuario en la respuesta');
+      throw new Error('No se recibieron los datos del usuario');
+    }
 
-    // Verificar que tenemos todos los datos necesarios
-    if (!user.id) {
+    console.log('API: Objeto usuario recibido:', data.usuario);
+
+    // Crear el objeto usuario con los datos que vienen del login
+    // Manejar tanto usuario_id como UsuarioID por compatibilidad
+    const usuarioId = data.usuario.usuario_id || data.usuario.UsuarioID;
+    
+    console.log('API: ID de usuario extraído:', usuarioId);
+    
+    if (!usuarioId) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      console.error('API: El ID del usuario es undefined o null');
       throw new Error('No se recibió el ID del usuario');
     }
-    
+
+    const user = {
+      id: usuarioId,
+      email: data.usuario.email || '',
+      nombre: data.usuario.nombre || '',
+      rol: data.usuario.rol || ''
+    };
+
+    console.log('API: Objeto usuario creado:', user);
+
+    // Guardar el token y el usuario en localStorage
+    localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(user));
+    
+    console.log('API: Login exitoso, usuario guardado en localStorage');
     return user;
   } catch (error) {
-    console.error('Error al iniciar sesión:', error);
-    throw error;
+    console.error('API: Error al iniciar sesión:', error);
+    // Si el error no tiene mensaje, usar uno por defecto
+    if (error.message) {
+      throw error;
+    } else {
+      throw new Error('Error de conexión. Por favor, verifica que el servidor esté en ejecución.');
+    }
   }
 };
 
@@ -137,9 +196,38 @@ export const getActivities = async () => {
       throw new Error(errorData.message || `Error al obtener las actividades (${response.status})`);
     }
 
-    const data = await response.json();
-    console.log('Actividades obtenidas:', data);
-    return data;
+    // Verificar el Content-Type
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('API: Respuesta de actividades no es JSON. Content-Type:', contentType);
+      console.error('API: Respuesta como texto:', text);
+      throw new Error('El servidor no devolvió una respuesta JSON válida');
+    }
+
+    const text = await response.text();
+    if (!text || text.trim() === '') {
+      console.log('API: Respuesta vacía, devolviendo array vacío');
+      return [];
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+      console.log('Actividades obtenidas:', data);
+      
+      // Asegurar que siempre sea un array
+      if (!Array.isArray(data)) {
+        console.error('API: La respuesta no es un array:', data);
+        throw new Error('El formato de respuesta no es válido: se esperaba un array');
+      }
+      
+      return data;
+    } catch (parseError) {
+      console.error('API: Error al parsear JSON de actividades:', parseError);
+      console.error('API: Respuesta como texto:', text);
+      throw new Error('Error al procesar la respuesta del servidor: ' + parseError.message);
+    }
   } catch (error) {
     console.error('Error al obtener actividades:', error);
     if (error.message === 'Failed to fetch') {

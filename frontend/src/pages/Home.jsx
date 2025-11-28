@@ -72,13 +72,11 @@ export default function Home() {
   const filterActivities = (searchValue, category) => {
     let results = activities;
 
-    // Filtrar por búsqueda
+    // Filtrar por búsqueda (solo por título)
     if (searchValue) {
-      results = results.filter(
-        (act) =>
-          act.titulo.toLowerCase().includes(searchValue) ||
-          act.categoria.toLowerCase().includes(searchValue) ||
-          act.instructor.toLowerCase().includes(searchValue)
+      const searchLower = searchValue.toLowerCase().trim();
+      results = results.filter((act) =>
+        act.titulo.toLowerCase().includes(searchLower)
       );
     }
 
@@ -147,7 +145,7 @@ export default function Home() {
             type="text"
             value={search}
             onChange={handleSearch}
-            placeholder="Buscar por nombre, categoría o instructor..."
+            placeholder="Buscar por título de actividad..."
             className="search-input"
           />
         </div>
